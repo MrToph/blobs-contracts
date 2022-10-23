@@ -36,27 +36,12 @@ abstract contract GobblersERC721 {
         address owner;
         // Index of token after shuffle.
         uint64 idx;
-        // Multiple on goo issuance.
-        uint32 emissionMultiple;
     }
 
     /// @notice Maps gobbler ids to their data.
     mapping(uint256 => GobblerData) public getGobblerData;
-
-    /// @notice Struct holding data relevant to each user's account.
-    struct UserData {
-        // The total number of gobblers currently owned by the user.
-        uint32 gobblersOwned;
-        // The sum of the multiples of all gobblers the user holds.
-        uint32 emissionMultiple;
-        // User's goo balance at time of last checkpointing.
-        uint128 lastBalance;
-        // Timestamp of the last goo balance checkpoint.
-        uint64 lastTimestamp;
-    }
-
-    /// @notice Maps user addresses to their account data.
-    mapping(address => UserData) public getUserData;
+    // @notice Maps an address to number of gobblers owned 
+    mapping(address => uint256) internal _balanceOf;
 
     function ownerOf(uint256 id) external view returns (address owner) {
         require((owner = getGobblerData[id].owner) != address(0), "NOT_MINTED");
@@ -65,7 +50,7 @@ abstract contract GobblersERC721 {
     function balanceOf(address owner) external view returns (uint256) {
         require(owner != address(0), "ZERO_ADDRESS");
 
-        return getUserData[owner].gobblersOwned;
+        return _balanceOf[owner];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -109,14 +94,16 @@ abstract contract GobblersERC721 {
         address from,
         address to,
         uint256 id
-    ) public virtual;
+    ) external {
+        _transferFrom(from, to, id);
+    }
 
     function safeTransferFrom(
         address from,
         address to,
         uint256 id
     ) external {
-        transferFrom(from, to, id);
+        _transferFrom(from, to, id);
 
         require(
             to.code.length == 0 ||
@@ -132,7 +119,7 @@ abstract contract GobblersERC721 {
         uint256 id,
         bytes calldata data
     ) external {
-        transferFrom(from, to, id);
+        _transferFrom(from, to, id);
 
         require(
             to.code.length == 0 ||
@@ -154,8 +141,34 @@ abstract contract GobblersERC721 {
     }
 
     /*//////////////////////////////////////////////////////////////
-                           INTERNAL MINT LOGIC
+                           INTERNAL MINT & TRANSFER LOGIC
     //////////////////////////////////////////////////////////////*/
+
+    function _transferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) internal {
+        require(from == getGobblerData[id].owner, "WRONG_FROM");
+
+        require(to != address(0), "INVALID_RECIPIENT");
+
+        require(
+            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
+            "NOT_AUTHORIZED"
+        );
+
+        delete getApproved[id];
+
+        getGobblerData[id].owner = to;
+
+        unchecked {
+            _balanceOf[from] -= 1;
+            _balanceOf[to] += 1;
+        }
+
+        emit Transfer(from, to, id);
+    }
 
     function _mint(address to, uint256 id) internal {
         // Does not check if the token was already minted or the recipient is address(0)
@@ -163,7 +176,7 @@ abstract contract GobblersERC721 {
         // double mint and will only mint to safe addresses or msg.sender who cannot be zero.
 
         unchecked {
-            ++getUserData[to].gobblersOwned;
+            ++_balanceOf[to];
         }
 
         getGobblerData[id].owner = to;
@@ -179,10 +192,11 @@ abstract contract GobblersERC721 {
         // Doesn't check if the tokens were already minted or the recipient is address(0)
         // because ArtGobblers.sol manages its ids in such a way that it ensures it won't
         // double mint and will only mint to safe addresses or msg.sender who cannot be zero.
+        unchecked {
+            _balanceOf[to] += amount;
+        }
 
         unchecked {
-            getUserData[to].gobblersOwned += uint32(amount);
-
             for (uint256 i = 0; i < amount; ++i) {
                 getGobblerData[++lastMintedId].owner = to;
 

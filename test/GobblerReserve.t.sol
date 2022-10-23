@@ -8,7 +8,6 @@ import {Vm} from "forge-std/Vm.sol";
 import {stdError} from "forge-std/Test.sol";
 import {ArtGobblers} from "../src/ArtGobblers.sol";
 import {Goo} from "../src/Goo.sol";
-import {Pages} from "../src/Pages.sol";
 import {GobblerReserve} from "../src/utils/GobblerReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
@@ -30,7 +29,6 @@ contract GobblerReserveTest is DSTestPlus {
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
-    Pages internal pages;
     GobblerReserve internal team;
     GobblerReserve internal community;
     RandProvider internal randProvider;
@@ -50,9 +48,8 @@ contract GobblerReserveTest is DSTestPlus {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 4 contract deploys, and pages after 5
+        //gobblers contract will be deployed after 4 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 4);
-        address pagesAddress = utils.predictContractAddress(address(this), 5);
 
         team = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
         community = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
@@ -68,22 +65,19 @@ contract GobblerReserveTest is DSTestPlus {
             // Gobblers:
             utils.predictContractAddress(address(this), 1),
             // Pages:
-            utils.predictContractAddress(address(this), 2)
+            address(0xDEAD)
         );
 
         gobblers = new ArtGobblers(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
-            Pages(pages),
             address(team),
             address(community),
             randProvider,
             "base",
             ""
         );
-
-        pages = new Pages(block.timestamp, goo, address(0xBEEF), gobblers, "");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -123,7 +117,7 @@ contract GobblerReserveTest is DSTestPlus {
             vm.stopPrank();
 
             vm.prank(addr);
-            gobblers.mintFromGoo(type(uint256).max, false);
+            gobblers.mintFromGoo(type(uint256).max);
         }
     }
 }

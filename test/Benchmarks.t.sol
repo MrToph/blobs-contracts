@@ -9,7 +9,6 @@ import {ArtGobblers} from "../src/ArtGobblers.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
 import {Goo} from "../src/Goo.sol";
-import {Pages} from "../src/Pages.sol";
 import {LinkToken} from "./utils/mocks/LinkToken.sol";
 import {VRFCoordinatorMock} from "chainlink/v0.8/mocks/VRFCoordinatorMock.sol";
 
@@ -24,7 +23,6 @@ contract BenchmarksTest is DSTest {
     LinkToken private linkToken;
     RandProvider private randProvider;
     Goo private goo;
-    Pages private pages;
 
     uint256 legendaryCost;
 
@@ -39,9 +37,8 @@ contract BenchmarksTest is DSTest {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 2 contract deploys, and pages after 3
+        //gobblers contract will be deployed after 2 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 2);
-        address pageAddress = utils.predictContractAddress(address(this), 3);
 
         randProvider = new ChainlinkV1RandProvider(
             ArtGobblers(gobblerAddress),
@@ -51,13 +48,12 @@ contract BenchmarksTest is DSTest {
             fee
         );
 
-        goo = new Goo(gobblerAddress, pageAddress);
+        goo = new Goo(gobblerAddress, address(0xDEAD));
 
         gobblers = new ArtGobblers(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
-            Pages(pageAddress),
             address(0xBEEF),
             address(0xBEEF),
             randProvider,
@@ -65,14 +61,9 @@ contract BenchmarksTest is DSTest {
             ""
         );
 
-        pages = new Pages(block.timestamp, goo, address(0xBEEF), gobblers, "");
-
         vm.prank(address(gobblers));
         goo.mintForGobblers(address(this), type(uint192).max);
 
-        gobblers.addGoo(type(uint96).max);
-
-        mintPageToAddress(address(this), 9);
         mintGobblerToAddress(address(this), gobblers.LEGENDARY_AUCTION_INTERVAL());
 
         vm.warp(block.timestamp + 30 days);
@@ -84,10 +75,6 @@ contract BenchmarksTest is DSTest {
         vrfCoordinator.callBackWithRandomness(requestId, randomness, address(randProvider));
     }
 
-    function testPagePrice() public view {
-        pages.pagePrice();
-    }
-
     function testGobblerPrice() public view {
         gobblers.gobblerPrice();
     }
@@ -96,36 +83,12 @@ contract BenchmarksTest is DSTest {
         gobblers.legendaryGobblerPrice();
     }
 
-    function testGooBalance() public view {
-        gobblers.gooBalance(address(this));
-    }
-
-    function testMintPage() public {
-        pages.mintFromGoo(type(uint256).max, false);
-    }
-
-    function testMintPageUsingVirtualBalance() public {
-        pages.mintFromGoo(type(uint256).max, true);
-    }
-
     function testMintGobbler() public {
-        gobblers.mintFromGoo(type(uint256).max, false);
-    }
-
-    function testMintGobblerUsingVirtualBalance() public {
-        gobblers.mintFromGoo(type(uint256).max, true);
+        gobblers.mintFromGoo(type(uint256).max);
     }
 
     function testTransferGobbler() public {
         gobblers.transferFrom(address(this), address(0xBEEF), 1);
-    }
-
-    function testAddGoo() public {
-        gobblers.addGoo(1e18);
-    }
-
-    function testRemoveGoo() public {
-        gobblers.removeGoo(1e18);
     }
 
     function testRevealGobblers() public {
@@ -145,10 +108,6 @@ contract BenchmarksTest is DSTest {
         gobblers.mintReservedGobblers(1);
     }
 
-    function testMintCommunityPages() public {
-        pages.mintCommunityPages(1);
-    }
-
     function mintGobblerToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
             vm.startPrank(address(gobblers));
@@ -156,18 +115,7 @@ contract BenchmarksTest is DSTest {
             vm.stopPrank();
 
             vm.prank(addr);
-            gobblers.mintFromGoo(type(uint256).max, false);
-        }
-    }
-
-    function mintPageToAddress(address addr, uint256 num) internal {
-        for (uint256 i = 0; i < num; ++i) {
-            vm.startPrank(address(gobblers));
-            goo.mintForGobblers(addr, pages.pagePrice());
-            vm.stopPrank();
-
-            vm.prank(addr);
-            pages.mintFromGoo(type(uint256).max, false);
+            gobblers.mintFromGoo(type(uint256).max);
         }
     }
 }

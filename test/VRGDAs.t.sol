@@ -7,7 +7,6 @@ import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {ArtGobblers} from "../src/ArtGobblers.sol";
 import {Goo} from "../src/Goo.sol";
-import {Pages} from "../src/Pages.sol";
 import {LinkToken} from "./utils/mocks/LinkToken.sol";
 import {VRFCoordinatorMock} from "chainlink/v0.8/mocks/VRFCoordinatorMock.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
@@ -27,7 +26,6 @@ contract VRGDAsTest is DSTestPlus {
     LinkToken private linkToken;
 
     Goo goo;
-    Pages pages;
     RandProvider randProvider;
 
     bytes32 private keyHash;
@@ -39,9 +37,8 @@ contract VRGDAsTest is DSTestPlus {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 2 contract deploys, and pages after 3
+        //gobblers contract will be deployed after 2 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 2);
-        address pagesAddress = utils.predictContractAddress(address(this), 3);
 
         randProvider = new ChainlinkV1RandProvider(
             ArtGobblers(gobblerAddress),
@@ -51,34 +48,24 @@ contract VRGDAsTest is DSTestPlus {
             fee
         );
 
-        goo = new Goo(gobblerAddress, pagesAddress);
+        goo = new Goo(gobblerAddress, address(0xDEAD));
 
         gobblers = new ArtGobblers(
             "root",
             block.timestamp,
             goo,
-            Pages(pagesAddress),
             address(0xBEEF),
             address(0xBEEF),
             randProvider,
             "base",
             ""
         );
-
-        pages = new Pages(block.timestamp, goo, address(0xBEEF), gobblers, "");
     }
 
     // function testFindGobblerOverflowPoint() public view {
     //     uint256 sold;
     //     while (true) {
     //         gobblers.getPrice(0 days, sold++);
-    //     }
-    // }
-
-    // function testFindPagesOverflowPoint() public view {
-    //     uint256 sold;
-    //     while (true) {
-    //         pages.getPrice(0 days, sold++);
     //     }
     // }
 
@@ -109,21 +96,6 @@ contract VRGDAsTest is DSTestPlus {
 
         while (sold <= 1730) {
             uint256 price = gobblers.getVRGDAPrice(0 days, sold++);
-            assertGt(price, previousPrice);
-            previousPrice = price;
-        }
-    }
-
-    function testNoOverflowForFirst8465Pages(uint256 timeSinceStart, uint256 sold) public {
-        pages.getVRGDAPrice(toDaysWadUnsafe(bound(timeSinceStart, 0 days, ONE_THOUSAND_YEARS)), bound(sold, 0, 8465));
-    }
-
-    function testPagePriceStrictlyIncreasesFor8465Pages() public {
-        uint256 sold;
-        uint256 previousPrice;
-
-        while (sold <= 8465) {
-            uint256 price = pages.getVRGDAPrice(0 days, sold++);
             assertGt(price, previousPrice);
             previousPrice = price;
         }

@@ -1,64 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
-/*                                                                              **,/*,
-                                                                     *%@&%#/*,,..........,/(%&@@#*
-                                                                 %@%,..............................#@@%
-                                                              &&,.....,,...............................,/&@*
-                                                            (@*.....**............,/,.......................(@%
-                                                           &&......*,............./,.............**............&@
-                                                          @#......**.............**..............,*........,*,..,@/
-                                                         /@......,/............../,..............,*........../,..*@.
-                                                        #@,......................*.............../,..........**...#/
-                                                      ,@&,.......................................*..........,/....(@
-                                                  *@&(*...................................................../*....(@
-                                                 @(..*%@@&%#(#@@@%%%%%&&@@@@@@@@@&&#(///..........................#@
-                                                 @%/@@@&%&&&@@&%%%%%%%#(/(((/(/(/(/(/(/(/(/(%%&@@@%(/,............#&
-                                                  @@@#/**./@%%%&%#/*************./(%@@@@&(*********(@&&@@@%(.....,&@
-                                                 ,@/.//(&@@/.     .#@%/******./&&*,      ./@&********%@/**(@#@@#,..(@
-                                                 #%****%@.           %@/****./&@      ,.    %&********%@(**&@...(@#.#@
-                                                 &#**./@/  %@&&      .@#****./@*    &@@@@&  .@/******./@@((((@&....(@
-                                                 ##**./&@ ,&@@@,     #@/****./@@      @@.  .@&*******./@%****%@@@(,
-                                                 ,@/**./%@(.      .*@@/********(&@#*,,,,/&@%/*******./@@&&&@@@#
-                                                   @&/**@&/%&&&&&%/**.//////*********./************./@&******@*
-                                                     /@@@@&(////#%&@@&(**./#&@@&(//*************./&@(********#@
-                                                       .@#**.///*****************(#@@@&&&&&@@@@&%(**********./@,
-                                                       @(*****%@#*********************&@#*********************(@
-                                                       @****./@#*./@@#//***.///(%@%*****%@*********************#@
-                                                      #&****./@%************************&@**********************@%
-                                                     .@/******.//*******************./@@(************************@/
-                                                     /@**********************************************************(@,
-                                                     @#*****************************************************%@@@@@@@.
-                                                    *@/*************************************************************#@(
-                                                    @%***************************************************************./@(
-                     /@@&&&@@                     .@/*******************************************************************&@
-                    @%######%@.                   @#***************************./%&&&%(**************#%******************&#
-                    @%######&@%&@@.             ,@(***./&#********************#@&#####%@&*************&%****************./@,
-               &&*,/@%######&@@@*.*@&,         @@****./@&*******************./%@#######%@#***********./@&*****************(@
-              ((...*%@&##%@@,..........,,,,%@&@%/*****&%****************./&@#*%@#######&@*#@%*********./@&*****************(@,
-              (@#....(@%#&&,...,/...........@(*******(@(****************(@/...*%@@@@@@%*....&@@@@&@@@@@@%/%@@##(************(@.
-              ((./(((%@%#&@/,/&@/...........%&*******%@****************./@%,.................#,............/@%***************#@
-              *@@####@@%###%&@(@(...........%&*******%@****************%@,,#%/..............................#@/***************&/
-              (#.....,&&####&@..%%..........%%*****(@@#****************#@,...................................@(***************(@
-              .@@&%%&@@&####&&.............,@(***%@(**********./#%%%%%##&@&#(,...............................#@****************&.
-               &#.....(@%###&@*............%@**%@(*******(&@&%#/////////@%...................................#@***************&@
-                 #@@@@&%####&@&&&,........%@./@%*****(@@%////////////////@@@%,...............................#@**************#@
-                     @@&&&&@@(    /&@@&%%@&@@@%**./&@(///////////////////@%.................................,@(*********./%@&.
-                      (@//@%                @%***&&(//////////////////////(&@(**,,,,./(%&@@@%/*,,****,,***./@@&&&&&&&&#//%@
-                      (@//%@               (@(*#@#////////////////////////////%@@%%%&@@#////%@/***************************&&
-                      (@//%@  .,,,,/#&&&&&&@&*#@#///////////////////////////////@%//&&///////#@(***************************@&(#@@@@@&(*.
-               ,@@@@@&&@//%@,,.,,,,,.,..,,#@./@%////////////////////////////////%@**&&////////(@(**************************&#,,,,,,,,,,,,/(#&@&
-          &@%*,,,,,,,,#@//%@,,,,,,,,,,,,,,&%*#@(////////////////////////////////%@**&&/////////&@**************************#@.,,,.,,.,,&#.,,...,%@
-       (@/,,,,,,,,,,,,(@(/%@,,,,,,,,,,,,,,&%*#@(////////////////////////////////%@./%@/////////#@(*************************&%,,,(%@@@@#*,.     .,/@.
-      &%..    *&@%/,.,#@(*#@*,,.,,,,,,,,,,%@/#@(////////////////////////////////%@**#@/////////#@(*****************.//#%@@@@%%(/,...        ...,,,%&
-     ,@*.,.       ../((%&&@@@&%#((///,,,,,/@&(@(////////////////////////////////@&**#@/////////%@%###%&&&&@@@@@@%%#(**,,,,,,.         ..,,,,,,,,,,%#
-      @(,,,,,..,            ,..   ..,,,**(%%%&@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%%(((,,.,.,,,,,,.,..,,,,.,.,,,,.,..,.,,.,,,,,.,,,,,,,,,.*@%
-       @%,,,,,,,,,,,,,,,.,.,,,      .,.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,.,,,.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,.,.,,,,,,#@@,
-        ,@@(,.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,.,,.,,.,.,./#%&@@@@@#
-         .@#&@@@@@%*,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/&@@@@@%&@%((((#@@.
-          .@%((((#@@@/#&@@@@&%#/*,.,..,,,,.,,,,,.,.,,,,,,,,,,,,,,,,..,.,..,,...,,,...,,,,,,.,,,,,,,,,,,../#%&@@@@@@@&%((///*********./(((/&&
-             %@&%%#/***********./////(((((((####%%&&@@@@@@@@@@@@@@&@@@@@@@@@@@@@@@@&&%%%%%%%%#((((((((%@&#(((((#%@%/*******************./*/
-
+/** Base: https://github.com/artgobblers/art-gobblers/tree/a337353df07193225aad40e8d6659bd67b0abb20
+ */
 import {Owned} from "solmate/auth/Owned.sol";
 import {ERC721} from "solmate/tokens/ERC721.sol";
 import {LibString} from "solmate/utils/LibString.sol";
@@ -67,14 +11,12 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {ERC1155, ERC1155TokenReceiver} from "solmate/tokens/ERC1155.sol";
 import {toWadUnsafe, toDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
 
-import {LibGOO} from "goo-issuance/LibGOO.sol";
 import {LogisticVRGDA} from "VRGDAs/LogisticVRGDA.sol";
 
 import {RandProvider} from "./utils/rand/RandProvider.sol";
 import {GobblersERC721} from "./utils/token/GobblersERC721.sol";
 
 import {Goo} from "./Goo.sol";
-import {Pages} from "./Pages.sol";
 
 /// @title Art Gobblers NFT
 /// @author FrankieIsLost <frankie@paradigm.xyz>
@@ -90,9 +32,6 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
 
     /// @notice The address of the Goo ERC20 token contract.
     Goo public immutable goo;
-
-    /// @notice The address of the Pages ERC721 token contract.
-    Pages public immutable pages;
 
     /// @notice The address which receives gobblers reserved for the team.
     address public immutable team;
@@ -290,7 +229,6 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
         uint256 _mintStart,
         // Addresses:
         Goo _goo,
-        Pages _pages,
         address _team,
         address _community,
         RandProvider _randProvider,
@@ -298,7 +236,7 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
         string memory _baseUri,
         string memory _unrevealedUri
     )
-        GobblersERC721("Art Gobblers", "GOBBLER")
+        GobblersERC721("Art Gobblers", "GOBBLER") // TODO: get name
         Owned(msg.sender)
         LogisticVRGDA(
             69.42e18, // Target price.
@@ -312,7 +250,6 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
         merkleRoot = _merkleRoot;
 
         goo = _goo;
-        pages = _pages;
         team = _team;
         community = _community;
         randProvider = _randProvider;
@@ -362,10 +299,8 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
 
     /// @notice Mint a gobbler, paying with goo.
     /// @param maxPrice Maximum price to pay to mint the gobbler.
-    /// @param useVirtualBalance Whether the cost is paid from the
-    /// user's virtual goo balance, or from their ERC20 goo balance.
     /// @return gobblerId The id of the gobbler that was minted.
-    function mintFromGoo(uint256 maxPrice, bool useVirtualBalance) external returns (uint256 gobblerId) {
+    function mintFromGoo(uint256 maxPrice) external returns (uint256 gobblerId) {
         // No need to check if we're at MAX_MINTABLE,
         // gobblerPrice() will revert once we reach it due to its
         // logistic nature. It will also revert prior to the mint start.
@@ -374,11 +309,8 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
         // If the current price is above the user's specified max, revert.
         if (currentPrice > maxPrice) revert PriceExceededMax(currentPrice);
 
-        // Decrement the user's goo balance by the current
-        // price, either from virtual balance or ERC20 balance.
-        useVirtualBalance
-            ? updateUserGooBalance(msg.sender, currentPrice, GooBalanceUpdateType.DECREASE)
-            : goo.burnForGobblers(msg.sender, currentPrice);
+        // Decrement the user's goo balance by the current price
+        goo.transferFrom(msg.sender, address(team), currentPrice);
 
         unchecked {
             ++numMintedFromGoo; // Overflow should be impossible due to the supply cap.
@@ -424,8 +356,6 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
 
         // Overflow should not occur in here, as most math is on emission multiples, which are inherently small.
         unchecked {
-            uint256 burnedMultipleTotal; // The legendary's emissionMultiple will be 2x the sum of the gobblers burned.
-
             /*//////////////////////////////////////////////////////////////
                                     BATCH BURN LOGIC
             //////////////////////////////////////////////////////////////*/
@@ -441,8 +371,6 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
 
                 require(gobbler.owner == msg.sender, "WRONG_FROM");
 
-                burnedMultipleTotal += gobbler.emissionMultiple;
-
                 delete getApproved[id];
 
                 emit Transfer(msg.sender, gobbler.owner = address(0), id);
@@ -451,19 +379,7 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
             /*//////////////////////////////////////////////////////////////
                                  LEGENDARY MINTING LOGIC
             //////////////////////////////////////////////////////////////*/
-
-            // The legendary's emissionMultiple is 2x the sum of the multiples of the gobblers burned.
-            getGobblerData[gobblerId].emissionMultiple = uint32(burnedMultipleTotal * 2);
-
-            // Update the user's user data struct in one big batch. We add burnedMultipleTotal to their
-            // emission multiple (not burnedMultipleTotal * 2) to account for the standard gobblers that
-            // were burned and hence should have their multiples subtracted from the user's total multiple.
-            getUserData[msg.sender].lastBalance = uint128(gooBalance(msg.sender)); // Checkpoint balance.
-            getUserData[msg.sender].lastTimestamp = uint64(block.timestamp); // Store time alongside it.
-            getUserData[msg.sender].emissionMultiple += uint32(burnedMultipleTotal); // Update multiple.
-            // Update the total number of gobblers owned by the user. The call to _mint
-            // below will increase the count by 1 to account for the new legendary gobbler.
-            getUserData[msg.sender].gobblersOwned -= uint32(cost);
+            _balanceOf[msg.sender] -= cost;
 
             // New start price is the max of LEGENDARY_GOBBLER_INITIAL_START_PRICE and cost * 2.
             legendaryGobblerAuctionData.startPrice = uint120(
@@ -624,50 +540,23 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
                     ? uint64(swapId) // Hasn't been shuffled before.
                     : getGobblerData[swapId].idx; // Shuffled before.
 
-                // Get the owner of the current id.
-                address currentIdOwner = getGobblerData[currentId].owner;
-
                 // Get the index of the current id.
                 uint64 currentIndex = getGobblerData[currentId].idx == 0
                     ? uint64(currentId) // Hasn't been shuffled before.
                     : getGobblerData[currentId].idx; // Shuffled before.
 
                 /*//////////////////////////////////////////////////////////////
-                                  SWAP INDICES AND SET MULTIPLE
+                                        SWAP INDICES
                 //////////////////////////////////////////////////////////////*/
-
-                // Determine the current id's new emission multiple.
-                uint256 newCurrentIdMultiple = 9; // For beyond 7963.
-
-                // The branchless expression below is equivalent to:
-                //      if (swapIndex <= 3054) newCurrentIdMultiple = 6;
-                // else if (swapIndex <= 5672) newCurrentIdMultiple = 7;
-                // else if (swapIndex <= 7963) newCurrentIdMultiple = 8;
-                assembly {
-                    // prettier-ignore
-                    newCurrentIdMultiple := sub(sub(sub(
-                        newCurrentIdMultiple,
-                        lt(swapIndex, 7964)),
-                        lt(swapIndex, 5673)),
-                        lt(swapIndex, 3055)
-                    )
-                }
 
                 // Swap the index and multiple of the current id.
                 getGobblerData[currentId].idx = swapIndex;
-                getGobblerData[currentId].emissionMultiple = uint32(newCurrentIdMultiple);
-
                 // Swap the index of the swap id.
                 getGobblerData[swapId].idx = currentIndex;
 
                 /*//////////////////////////////////////////////////////////////
-                                   UPDATE CURRENT ID MULTIPLE
+                                       UPDATE RANDOMNESS
                 //////////////////////////////////////////////////////////////*/
-
-                // Update the user data for the owner of the current id.
-                getUserData[currentIdOwner].lastBalance = uint128(gooBalance(currentIdOwner));
-                getUserData[currentIdOwner].lastTimestamp = uint64(block.timestamp);
-                getUserData[currentIdOwner].emissionMultiple += uint32(newCurrentIdMultiple);
 
                 // Update the random seed to choose a new distance for the next iteration.
                 // It is critical that we cast to uint64 here, as otherwise the random seed
@@ -720,123 +609,6 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
     }
 
     /*//////////////////////////////////////////////////////////////
-                            GOBBLE ART LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Feed a gobbler a work of art.
-    /// @param gobblerId The gobbler to feed the work of art.
-    /// @param nft The ERC721 or ERC1155 contract of the work of art.
-    /// @param id The id of the work of art.
-    /// @param isERC1155 Whether the work of art is an ERC1155 token.
-    function gobble(
-        uint256 gobblerId,
-        address nft,
-        uint256 id,
-        bool isERC1155
-    ) external {
-        // Get the owner of the gobbler to feed.
-        address owner = getGobblerData[gobblerId].owner;
-
-        // The caller must own the gobbler they're feeding.
-        if (owner != msg.sender) revert OwnerMismatch(owner);
-
-        // Gobblers have taken a vow not to eat other gobblers.
-        if (nft == address(this)) revert Cannibalism();
-
-        unchecked {
-            // Increment the # of copies gobbled by the gobbler. Unchecked is
-            // safe, as an NFT can't have more than type(uint256).max copies.
-            ++getCopiesOfArtGobbledByGobbler[gobblerId][nft][id];
-        }
-
-        emit ArtGobbled(msg.sender, gobblerId, nft, id);
-
-        isERC1155
-            ? ERC1155(nft).safeTransferFrom(msg.sender, address(this), id, 1, "")
-            : ERC721(nft).transferFrom(msg.sender, address(this), id);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                GOO LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Calculate a user's virtual goo balance.
-    /// @param user The user to query balance for.
-    function gooBalance(address user) public view returns (uint256) {
-        // Compute the user's virtual goo balance by leveraging LibGOO.
-        // prettier-ignore
-        return LibGOO.computeGOOBalance(
-            getUserData[user].emissionMultiple,
-            getUserData[user].lastBalance,
-            uint256(toDaysWadUnsafe(block.timestamp - getUserData[user].lastTimestamp))
-        );
-    }
-
-    /// @notice Add goo to your emission balance,
-    /// burning the corresponding ERC20 balance.
-    /// @param gooAmount The amount of goo to add.
-    function addGoo(uint256 gooAmount) external {
-        // Burn goo being added to gobbler.
-        goo.burnForGobblers(msg.sender, gooAmount);
-
-        // Increase msg.sender's virtual goo balance.
-        updateUserGooBalance(msg.sender, gooAmount, GooBalanceUpdateType.INCREASE);
-    }
-
-    /// @notice Remove goo from your emission balance, and
-    /// add the corresponding amount to your ERC20 balance.
-    /// @param gooAmount The amount of goo to remove.
-    function removeGoo(uint256 gooAmount) external {
-        // Decrease msg.sender's virtual goo balance.
-        updateUserGooBalance(msg.sender, gooAmount, GooBalanceUpdateType.DECREASE);
-
-        // Mint the corresponding amount of ERC20 goo.
-        goo.mintForGobblers(msg.sender, gooAmount);
-    }
-
-    /// @notice Burn an amount of a user's virtual goo balance. Only callable
-    /// by the Pages contract to enable purchasing pages with virtual balance.
-    /// @param user The user whose virtual goo balance we should burn from.
-    /// @param gooAmount The amount of goo to burn from the user's virtual balance.
-    function burnGooForPages(address user, uint256 gooAmount) external {
-        // The caller must be the Pages contract, revert otherwise.
-        if (msg.sender != address(pages)) revert UnauthorizedCaller(msg.sender);
-
-        // Burn the requested amount of goo from the user's virtual goo balance.
-        // Will revert if the user doesn't have enough goo in their virtual balance.
-        updateUserGooBalance(user, gooAmount, GooBalanceUpdateType.DECREASE);
-    }
-
-    /// @dev An enum for representing whether to
-    /// increase or decrease a user's goo balance.
-    enum GooBalanceUpdateType {
-        INCREASE,
-        DECREASE
-    }
-
-    /// @notice Update a user's virtual goo balance.
-    /// @param user The user whose virtual goo balance we should update.
-    /// @param gooAmount The amount of goo to update the user's virtual balance by.
-    /// @param updateType Whether to increase or decrease the user's balance by gooAmount.
-    function updateUserGooBalance(
-        address user,
-        uint256 gooAmount,
-        GooBalanceUpdateType updateType
-    ) internal {
-        // Will revert due to underflow if we're decreasing by more than the user's current balance.
-        // Don't need to do checked addition in the increase case, but we do it anyway for convenience.
-        uint256 updatedBalance = updateType == GooBalanceUpdateType.INCREASE
-            ? gooBalance(user) + gooAmount
-            : gooBalance(user) - gooAmount;
-
-        // Snapshot the user's new goo balance with the current timestamp.
-        getUserData[user].lastBalance = uint128(updatedBalance);
-        getUserData[user].lastTimestamp = uint64(block.timestamp);
-
-        emit GooBalanceUpdated(user, updatedBalance);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                      RESERVED GOBBLERS MINTING LOGIC
     //////////////////////////////////////////////////////////////*/
 
@@ -863,64 +635,5 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
         currentNonLegendaryId = uint128(lastMintedGobblerId); // Set currentNonLegendaryId.
 
         emit ReservedGobblersMinted(msg.sender, lastMintedGobblerId, numGobblersEach);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                          CONVENIENCE FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Convenience function to get emissionMultiple for a gobbler.
-    /// @param gobblerId The gobbler to get emissionMultiple for.
-    function getGobblerEmissionMultiple(uint256 gobblerId) external view returns (uint256) {
-        return getGobblerData[gobblerId].emissionMultiple;
-    }
-
-    /// @notice Convenience function to get emissionMultiple for a user.
-    /// @param user The user to get emissionMultiple for.
-    function getUserEmissionMultiple(address user) external view returns (uint256) {
-        return getUserData[user].emissionMultiple;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                              ERC721 LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public override {
-        require(from == getGobblerData[id].owner, "WRONG_FROM");
-
-        require(to != address(0), "INVALID_RECIPIENT");
-
-        require(
-            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
-            "NOT_AUTHORIZED"
-        );
-
-        delete getApproved[id];
-
-        getGobblerData[id].owner = to;
-
-        unchecked {
-            uint32 emissionMultiple = getGobblerData[id].emissionMultiple; // Caching saves gas.
-
-            // We update their last balance before updating their emission multiple to avoid
-            // penalizing them by retroactively applying their new (lower) emission multiple.
-            getUserData[from].lastBalance = uint128(gooBalance(from));
-            getUserData[from].lastTimestamp = uint64(block.timestamp);
-            getUserData[from].emissionMultiple -= emissionMultiple;
-            getUserData[from].gobblersOwned -= 1;
-
-            // We update their last balance before updating their emission multiple to avoid
-            // overpaying them by retroactively applying their new (higher) emission multiple.
-            getUserData[to].lastBalance = uint128(gooBalance(to));
-            getUserData[to].lastTimestamp = uint64(block.timestamp);
-            getUserData[to].emissionMultiple += emissionMultiple;
-            getUserData[to].gobblersOwned += 1;
-        }
-
-        emit Transfer(from, to, id);
     }
 }

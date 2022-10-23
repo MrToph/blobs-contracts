@@ -13,7 +13,6 @@ contract DeployGoerli is DeployBase {
 
     string public constant gobblerBaseUri = "https://testnet.ag.xyz/api/nfts/gobblers/";
     string public constant gobblerUnrevealedUri = "https://testnet.ag.xyz/api/nfts/unrevealed";
-    string public constant pagesBaseUri = "https://testnet.ag.xyz/api/nfts/pages/";
 
     constructor()
         DeployBase(
@@ -34,9 +33,7 @@ contract DeployGoerli is DeployBase {
             // Gobbler base URI:
             gobblerBaseUri,
             // Gobbler unrevealed URI:
-            gobblerUnrevealedUri,
-            // Pages base URI:
-            pagesBaseUri
+            gobblerUnrevealedUri
         )
     {}
 }

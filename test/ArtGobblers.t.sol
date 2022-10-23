@@ -8,7 +8,6 @@ import {Vm} from "forge-std/Vm.sol";
 import {stdError} from "forge-std/Test.sol";
 import {ArtGobblers, FixedPointMathLib} from "../src/ArtGobblers.sol";
 import {Goo} from "../src/Goo.sol";
-import {Pages} from "../src/Pages.sol";
 import {GobblerReserve} from "../src/utils/GobblerReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
@@ -32,7 +31,6 @@ contract ArtGobblersTest is DSTestPlus {
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
-    Pages internal pages;
     GobblerReserve internal team;
     GobblerReserve internal community;
     RandProvider internal randProvider;
@@ -52,9 +50,8 @@ contract ArtGobblersTest is DSTestPlus {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 4 contract deploys, and pages after 5
+        //gobblers contract will be deployed after 4 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 4);
-        address pagesAddress = utils.predictContractAddress(address(this), 5);
 
         team = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
         community = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
@@ -70,22 +67,19 @@ contract ArtGobblersTest is DSTestPlus {
             // Gobblers:
             utils.predictContractAddress(address(this), 1),
             // Pages:
-            utils.predictContractAddress(address(this), 2)
+            address(0xDEAD)
         );
 
         gobblers = new ArtGobblers(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
-            Pages(pagesAddress),
             address(team),
             address(community),
             randProvider,
             "base",
             ""
         );
-
-        pages = new Pages(block.timestamp, goo, address(0xBEEF), gobblers, "");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -138,7 +132,7 @@ contract ArtGobblersTest is DSTestPlus {
         vm.prank(address(gobblers));
         goo.mintForGobblers(users[0], cost);
         vm.prank(users[0]);
-        gobblers.mintFromGoo(type(uint256).max, false);
+        gobblers.mintFromGoo(type(uint256).max);
         assertEq(gobblers.ownerOf(1), users[0]);
     }
 
@@ -146,44 +140,7 @@ contract ArtGobblersTest is DSTestPlus {
     function testMintInsufficientBalance() public {
         vm.prank(users[0]);
         vm.expectRevert(stdError.arithmeticError);
-        gobblers.mintFromGoo(type(uint256).max, false);
-    }
-
-    /// @notice Test that you can successfully mint from goo.
-    function testMintFromGooBalance() public {
-        uint256 cost = gobblers.gobblerPrice();
-        //mint initial gobbler
-        vm.prank(address(gobblers));
-        goo.mintForGobblers(users[0], cost);
-        vm.prank(users[0]);
-        gobblers.mintFromGoo(type(uint256).max, false);
-        assertEq(gobblers.balanceOf(users[0]), 1);
-        //warp for reveals
-        vm.warp(block.timestamp + 1 days);
-        setRandomnessAndReveal(1, "seed");
-        //warp until balance is larger than cost
-        vm.warp(block.timestamp + 3 days);
-        uint256 initialBalance = gobblers.gooBalance(users[0]);
-        uint256 gobblerPrice = gobblers.gobblerPrice();
-        assertTrue(initialBalance > gobblerPrice);
-        console.log("newPrice", gobblerPrice);
-        console.log("balance", initialBalance);
-        //mint from balance
-        vm.prank(users[0]);
-        gobblers.mintFromGoo(type(uint256).max, true);
-        //asert owner is correct
-        assertEq(gobblers.ownerOf(2), users[0]);
-        //asert balance went down by expected amount
-        uint256 finalBalance = gobblers.gooBalance(users[0]);
-        uint256 paidGoo = initialBalance - finalBalance;
-        assertEq(paidGoo, gobblerPrice);
-    }
-
-    /// @notice Test that you can't mint with insufficient balance
-    function testMintFromBalanceInsufficient() public {
-        vm.prank(users[0]);
-        vm.expectRevert(stdError.arithmeticError);
-        gobblers.mintFromGoo(type(uint256).max, true);
+        gobblers.mintFromGoo(type(uint256).max);
     }
 
     /// @notice Test that if mint price exceeds max it reverts.
@@ -193,7 +150,7 @@ contract ArtGobblersTest is DSTestPlus {
         goo.mintForGobblers(users[0], cost);
         vm.prank(users[0]);
         vm.expectRevert(abi.encodeWithSelector(ArtGobblers.PriceExceededMax.selector, cost));
-        gobblers.mintFromGoo(cost - 1, false);
+        gobblers.mintFromGoo(cost - 1);
     }
 
     /// @notice Test that initial gobbler price is what we expect.
@@ -263,49 +220,6 @@ contract ArtGobblersTest is DSTestPlus {
         gobblers.mintReservedGobblers(1);
     }
 
-    function testCanMintPageFromVirtualBalance() public {
-        uint256 cost = gobblers.gobblerPrice();
-        //mint initial gobbler
-        vm.prank(address(gobblers));
-        goo.mintForGobblers(users[0], cost);
-        vm.prank(users[0]);
-        gobblers.mintFromGoo(type(uint256).max, false);
-        //warp for reveals
-        vm.warp(block.timestamp + 1 days);
-        setRandomnessAndReveal(1, "seed");
-        //warp until balance is larger than cost
-        vm.warp(block.timestamp + 3 days);
-        uint256 initialBalance = gobblers.gooBalance(users[0]);
-        uint256 pagePrice = pages.pagePrice();
-        console.log(pagePrice);
-        assertTrue(initialBalance > pagePrice);
-        //mint from balance
-        vm.prank(users[0]);
-        pages.mintFromGoo(type(uint256).max, true);
-        //asert owner is correct
-        assertEq(pages.ownerOf(1), users[0]);
-        //asert balance went down by expected amount
-        uint256 finalBalance = gobblers.gooBalance(users[0]);
-        uint256 paidGoo = initialBalance - finalBalance;
-        assertEq(paidGoo, pagePrice);
-    }
-
-    function testCannotMintPageWithInsufficientBalance() public {
-        uint256 cost = gobblers.gobblerPrice();
-        //mint initial gobbler
-        vm.prank(address(gobblers));
-        goo.mintForGobblers(users[0], cost);
-        vm.prank(users[0]);
-        gobblers.mintFromGoo(type(uint256).max, false);
-        //warp for reveals
-        vm.warp(block.timestamp + 1 days);
-        setRandomnessAndReveal(1, "seed");
-        // try to mint from balance
-        vm.prank(users[0]);
-        vm.expectRevert(stdError.arithmeticError);
-        pages.mintFromGoo(type(uint256).max, true);
-    }
-
     /*//////////////////////////////////////////////////////////////
                               PRICING TESTS
     //////////////////////////////////////////////////////////////*/
@@ -324,7 +238,7 @@ contract ArtGobblersTest is DSTestPlus {
             goo.mintForGobblers(users[0], price);
             vm.stopPrank();
             vm.prank(users[0]);
-            gobblers.mintFromGoo(price, false);
+            gobblers.mintFromGoo(price);
         }
 
         uint256 targetPrice = uint256(gobblers.targetPrice());
@@ -426,23 +340,16 @@ contract ArtGobblersTest is DSTestPlus {
         uint256 cost = gobblers.legendaryGobblerPrice();
         assertEq(cost, 69);
         setRandomnessAndReveal(cost, "seed");
-        uint256 emissionMultipleSum;
         for (uint256 curId = 1; curId <= cost; curId++) {
             ids.push(curId);
             assertEq(gobblers.ownerOf(curId), users[0]);
-            emissionMultipleSum += gobblers.getGobblerEmissionMultiple(curId);
         }
-
-        assertEq(gobblers.getUserEmissionMultiple(users[0]), emissionMultipleSum);
 
         vm.prank(users[0]);
         uint256 mintedLegendaryId = gobblers.mintLegendaryGobbler(ids);
 
         // Legendary is owned by user.
         assertEq(gobblers.ownerOf(mintedLegendaryId), users[0]);
-        assertEq(gobblers.getUserEmissionMultiple(users[0]), emissionMultipleSum * 2);
-
-        assertEq(gobblers.getGobblerEmissionMultiple(mintedLegendaryId), emissionMultipleSum * 2);
 
         for (uint256 i = 0; i < ids.length; ++i) {
             hevm.expectRevert("NOT_MINTED");
@@ -488,7 +395,6 @@ contract ArtGobblersTest is DSTestPlus {
         uint256 mintedLegendaryId = gobblers.mintLegendaryGobbler(ids);
 
         assertEq(gobblers.ownerOf(mintedLegendaryId), users[0]);
-        assertEq(gobblers.getGobblerEmissionMultiple(mintedLegendaryId), 0);
     }
 
     /// @notice Test that Legendary Gobblers can be minted at 0 cost.
@@ -506,7 +412,6 @@ contract ArtGobblersTest is DSTestPlus {
         uint256 mintedLegendaryId = gobblers.mintLegendaryGobbler(ids);
 
         assertEq(gobblers.ownerOf(mintedLegendaryId), users[0]);
-        assertEq(gobblers.getGobblerEmissionMultiple(mintedLegendaryId), 0);
     }
 
     /// @notice Test that legendary gobblers can't be minted with insufficient payment.
@@ -518,14 +423,11 @@ contract ArtGobblersTest is DSTestPlus {
         uint256 cost = gobblers.legendaryGobblerPrice();
         assertEq(cost, 69);
         setRandomnessAndReveal(cost, "seed");
-        uint256 emissionMultipleSum;
         for (uint256 curId = 1; curId <= cost; curId++) {
             ids.push(curId);
             assertEq(gobblers.ownerOf(curId), users[0]);
-            emissionMultipleSum += gobblers.getGobblerEmissionMultiple(curId);
         }
 
-        assertEq(gobblers.getUserEmissionMultiple(users[0]), emissionMultipleSum);
 
         //remove one id such that payment is insufficient
         ids.pop();
@@ -544,12 +446,10 @@ contract ArtGobblersTest is DSTestPlus {
         uint256 cost = gobblers.legendaryGobblerPrice();
         assertEq(cost, 69);
         setRandomnessAndReveal(cost, "seed");
-        uint256 emissionMultipleSum;
         //add more ids than necessary
         for (uint256 curId = 1; curId <= cost + 10; curId++) {
             ids.push(curId);
             assertEq(gobblers.ownerOf(curId), users[0]);
-            emissionMultipleSum += gobblers.getGobblerEmissionMultiple(curId);
         }
 
         vm.prank(users[0]);
@@ -575,14 +475,11 @@ contract ArtGobblersTest is DSTestPlus {
         uint256 cost = gobblers.legendaryGobblerPrice();
         assertEq(cost, 69);
         setRandomnessAndReveal(cost, "seed");
-        uint256 emissionMultipleSum;
         for (uint256 curId = 1; curId <= cost; curId++) {
             ids.push(curId);
             assertEq(gobblers.ownerOf(curId), users[0]);
-            emissionMultipleSum += gobblers.getGobblerEmissionMultiple(curId);
         }
 
-        assertEq(gobblers.getUserEmissionMultiple(users[0]), emissionMultipleSum);
 
         ids.pop();
         ids.push(999);
@@ -694,7 +591,7 @@ contract ArtGobblersTest is DSTestPlus {
         vm.prank(address(gobblers));
         goo.mintForGobblers(users[0], gobblerCost);
         vm.prank(users[0]);
-        gobblers.mintFromGoo(type(uint256).max, false);
+        gobblers.mintFromGoo(type(uint256).max);
         // assert gobbler not revealed after mint
         assertTrue(stringEquals(gobblers.tokenURI(1), gobblers.UNREVEALED_URI()));
     }
@@ -703,10 +600,9 @@ contract ArtGobblersTest is DSTestPlus {
     function testRevealedUri() public {
         mintGobblerToAddress(users[0], 1);
         // unrevealed gobblers have 0 value attributes
-        assertEq(gobblers.getGobblerEmissionMultiple(1), 0);
         vm.warp(block.timestamp + 1 days);
         setRandomnessAndReveal(1, "seed");
-        (, uint64 expectedIndex, ) = gobblers.getGobblerData(1);
+        (, uint64 expectedIndex) = gobblers.getGobblerData(1);
         string memory expectedURI = string(abi.encodePacked(gobblers.BASE_URI(), uint256(expectedIndex).toString()));
         assertTrue(stringEquals(gobblers.tokenURI(1), expectedURI));
     }
@@ -835,270 +731,6 @@ contract ArtGobblersTest is DSTestPlus {
     }
 
     /*//////////////////////////////////////////////////////////////
-                                  GOO
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice test that goo balance grows as expected.
-    function testSimpleRewards() public {
-        mintGobblerToAddress(users[0], 1);
-        // balance should initially be zero
-        assertEq(gobblers.gooBalance(users[0]), 0);
-        vm.warp(block.timestamp + 100000);
-        // balance should be zero while no reveal
-        assertEq(gobblers.gooBalance(users[0]), 0);
-        setRandomnessAndReveal(1, "seed");
-        // balance should NOT grow on same timestamp after reveal
-        assertEq(gobblers.gooBalance(users[0]), 0);
-        vm.warp(block.timestamp + 100000);
-        // balance should grow after reveal
-        assertGt(gobblers.gooBalance(users[0]), 0);
-    }
-
-    /// @notice Test that goo removal works as expected.
-    function testGooRemoval() public {
-        mintGobblerToAddress(users[0], 1);
-        vm.warp(block.timestamp + 1 days);
-        setRandomnessAndReveal(1, "seed");
-        vm.warp(block.timestamp + 100000);
-        uint256 initialBalance = gobblers.gooBalance(users[0]);
-        uint256 removalAmount = initialBalance / 10; //10%
-        vm.prank(users[0]);
-        gobblers.removeGoo(removalAmount);
-        uint256 finalBalance = gobblers.gooBalance(users[0]);
-        // balance should change
-        assertTrue(initialBalance != finalBalance);
-        assertEq(initialBalance, finalBalance + removalAmount);
-        // user should have removed goo
-        assertEq(goo.balanceOf(users[0]), removalAmount);
-    }
-
-    /// @notice Test that goo can't be removed when the balance is insufficient.
-    function testCantRemoveGoo() public {
-        vm.warp(block.timestamp + 100000);
-        mintGobblerToAddress(users[0], 1);
-        setRandomnessAndReveal(1, "seed");
-        vm.prank(users[0]);
-        vm.expectRevert(stdError.arithmeticError);
-        // can't remove, since balance should be zero.
-        gobblers.removeGoo(1);
-    }
-
-    /// @notice Test that adding goo is reflected in balance.
-    function testGooAddition() public {
-        mintGobblerToAddress(users[0], 1);
-        assertEq(gobblers.getGobblerEmissionMultiple(1), 0);
-        assertEq(gobblers.getUserEmissionMultiple(users[0]), 0);
-        // waiting after mint to reveal shouldn't affect balance
-        vm.warp(block.timestamp + 100000);
-        assertEq(gobblers.gooBalance(users[0]), 0);
-        setRandomnessAndReveal(1, "seed");
-        uint256 gobblerMultiple = gobblers.getGobblerEmissionMultiple(1);
-        assertGt(gobblerMultiple, 0);
-        assertEq(gobblers.getUserEmissionMultiple(users[0]), gobblerMultiple);
-        vm.prank(address(gobblers));
-        uint256 additionAmount = 1000;
-        goo.mintForGobblers(users[0], additionAmount);
-        vm.prank(users[0]);
-        gobblers.addGoo(additionAmount);
-        assertEq(gobblers.gooBalance(users[0]), additionAmount);
-    }
-
-    /// @notice Test that we can't add goo when we don't have the corresponding ERC20 balance.
-    function testCantAddMoreGooThanOwned() public {
-        mintGobblerToAddress(users[0], 1);
-        vm.warp(block.timestamp + 1 days);
-        setRandomnessAndReveal(1, "seed");
-        vm.prank(users[0]);
-        vm.expectRevert(stdError.arithmeticError);
-        gobblers.addGoo(10000);
-    }
-
-    /// @notice make sure that actions that trigger balance snapshotting do not affect total balance.
-    function testSnapshotDoesNotAffectBalance() public {
-        //mint one gobbler for each user
-        mintGobblerToAddress(users[0], 1);
-        mintGobblerToAddress(users[1], 1);
-        vm.warp(block.timestamp + 1 days);
-        //give user initial goo balance
-        vm.prank(address(gobblers));
-        goo.mintForGobblers(users[0], 100);
-        //reveal gobblers
-        bytes32 requestId = gobblers.requestRandomSeed();
-        uint256 randomness = 1022; // magic seed to ensure both gobblers have same multiplier
-        vrfCoordinator.callBackWithRandomness(requestId, randomness, address(randProvider));
-        gobblers.revealGobblers(2);
-        //make sure both gobblers have same multiple, and same starting balance
-        assertGt(gobblers.getUserEmissionMultiple(users[0]), 0);
-        assertEq(gobblers.getUserEmissionMultiple(users[0]), gobblers.getUserEmissionMultiple(users[1]));
-        uint256 initialBalanceZero = gobblers.gooBalance(users[0]);
-        uint256 initialBalanceOne = gobblers.gooBalance(users[1]);
-        assertEq(initialBalanceZero, initialBalanceOne);
-        vm.warp(block.timestamp + 5 days);
-        //Add and remove one unit of goo to trigger snapshot
-        vm.startPrank(users[0]);
-        gobblers.addGoo(1);
-        gobblers.removeGoo(1);
-        vm.stopPrank();
-        //One more time
-        vm.warp(block.timestamp + 5 days);
-        vm.startPrank(users[0]);
-        gobblers.addGoo(1);
-        gobblers.removeGoo(1);
-        vm.stopPrank();
-        // make sure users have equal balance
-        vm.warp(block.timestamp + 5 days);
-        assertGt(gobblers.getUserEmissionMultiple(users[0]), initialBalanceZero);
-        assertEq(gobblers.gooBalance(users[0]), gobblers.gooBalance(users[1]));
-    }
-
-    /// @notice Test that emission multiple changes as expected after transfer.
-    function testEmissionMultipleUpdatesAfterTransfer() public {
-        mintGobblerToAddress(users[0], 1);
-        vm.warp(block.timestamp + 1 days);
-        setRandomnessAndReveal(1, "seed");
-
-        uint256 initialUserMultiple = gobblers.getUserEmissionMultiple(users[0]);
-        assertGt(initialUserMultiple, 0);
-        assertEq(gobblers.getUserEmissionMultiple(users[1]), 0);
-
-        assertEq(gobblers.balanceOf(address(users[0])), 1);
-        assertEq(gobblers.balanceOf(address(users[1])), 0);
-
-        vm.prank(users[0]);
-        gobblers.transferFrom(users[0], users[1], 1);
-
-        assertEq(gobblers.getUserEmissionMultiple(users[0]), 0);
-        assertEq(gobblers.getUserEmissionMultiple(users[1]), initialUserMultiple);
-
-        assertEq(gobblers.balanceOf(address(users[0])), 0);
-        assertEq(gobblers.balanceOf(address(users[1])), 1);
-    }
-
-    /// @notice Test that gobbler balances are accurate after transfer.
-    function testGobblerBalancesAfterTransfer() public {
-        mintGobblerToAddress(users[0], 1);
-        vm.warp(block.timestamp + 1 days);
-        setRandomnessAndReveal(1, "seed");
-
-        vm.warp(block.timestamp + 1000000);
-
-        uint256 userOneBalance = gobblers.gooBalance(users[0]);
-        uint256 userTwoBalance = gobblers.gooBalance(users[1]);
-        //user with gobbler should have non-zero balance
-        assertGt(userOneBalance, 0);
-        //other user should have zero balance
-        assertEq(userTwoBalance, 0);
-        //transfer gobblers
-        vm.prank(users[0]);
-        gobblers.transferFrom(users[0], users[1], 1);
-        //balance should not change after transfer
-        assertEq(gobblers.gooBalance(users[0]), userOneBalance);
-        assertEq(gobblers.gooBalance(users[1]), userTwoBalance);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                               FEEDING ART
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Test that pages can be fed to gobblers.
-    function testFeedingArt() public {
-        address user = users[0];
-        mintGobblerToAddress(user, 1);
-        uint256 pagePrice = pages.pagePrice();
-        vm.prank(address(gobblers));
-        goo.mintForGobblers(user, pagePrice);
-        vm.startPrank(user);
-        pages.mintFromGoo(type(uint256).max, false);
-        gobblers.gobble(1, address(pages), 1, false);
-        vm.stopPrank();
-        assertEq(gobblers.getCopiesOfArtGobbledByGobbler(1, address(pages), 1), 1);
-    }
-
-    /// @notice Test that you can't feed art to gobblers you don't own.
-    function testCantgobbleToUnownedGobbler() public {
-        address user = users[0];
-        uint256 pagePrice = pages.pagePrice();
-        vm.prank(address(gobblers));
-        goo.mintForGobblers(user, pagePrice);
-        vm.startPrank(user);
-        pages.mintFromGoo(type(uint256).max, false);
-        vm.expectRevert(abi.encodeWithSelector(ArtGobblers.OwnerMismatch.selector, address(0)));
-        gobblers.gobble(1, address(pages), 1, false);
-        vm.stopPrank();
-    }
-
-    /// @notice Test that you can't feed art you don't own to your gobbler.
-    function testCantFeedUnownedArt() public {
-        address user = users[0];
-        mintGobblerToAddress(user, 1);
-        vm.startPrank(user);
-        vm.expectRevert("WRONG_FROM");
-        gobblers.gobble(1, address(pages), 1, false);
-        vm.stopPrank();
-    }
-
-    /// @notice Test that gobblers can't eat other gobblers
-    function testCantFeedGobblers() public {
-        address user = users[0];
-        mintGobblerToAddress(user, 2);
-        vm.startPrank(user);
-        vm.expectRevert(ArtGobblers.Cannibalism.selector);
-        gobblers.gobble(1, address(gobblers), 2, true);
-        vm.stopPrank();
-    }
-
-    function testCantFeed721As1155() public {
-        address user = users[0];
-        mintGobblerToAddress(user, 1);
-        uint256 pagePrice = pages.pagePrice();
-        vm.prank(address(gobblers));
-        goo.mintForGobblers(user, pagePrice);
-        vm.startPrank(user);
-        pages.mintFromGoo(type(uint256).max, false);
-        vm.expectRevert();
-        gobblers.gobble(1, address(pages), 1, true);
-    }
-
-    function testFeeding1155() public {
-        address user = users[0];
-        mintGobblerToAddress(user, 1);
-        MockERC1155 token = new MockERC1155();
-        token.mint(user, 0, 1, "");
-        vm.startPrank(user);
-        token.setApprovalForAll(address(gobblers), true);
-        gobblers.gobble(1, address(token), 0, true);
-        vm.stopPrank();
-        assertEq(gobblers.getCopiesOfArtGobbledByGobbler(1, address(token), 0), 1);
-    }
-
-    function testFeedingMultiple1155Copies() public {
-        address user = users[0];
-        mintGobblerToAddress(user, 1);
-        MockERC1155 token = new MockERC1155();
-        token.mint(user, 0, 5, "");
-        vm.startPrank(user);
-        token.setApprovalForAll(address(gobblers), true);
-        gobblers.gobble(1, address(token), 0, true);
-        gobblers.gobble(1, address(token), 0, true);
-        gobblers.gobble(1, address(token), 0, true);
-        gobblers.gobble(1, address(token), 0, true);
-        gobblers.gobble(1, address(token), 0, true);
-        vm.stopPrank();
-        assertEq(gobblers.getCopiesOfArtGobbledByGobbler(1, address(token), 0), 5);
-    }
-
-    function testCantFeed1155As721() public {
-        address user = users[0];
-        mintGobblerToAddress(user, 1);
-        MockERC1155 token = new MockERC1155();
-        token.mint(user, 0, 1, "");
-        vm.startPrank(user);
-        token.setApprovalForAll(address(gobblers), true);
-        vm.expectRevert();
-        gobblers.gobble(1, address(token), 0, false);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                            LONG-RUNNING TESTS
     //////////////////////////////////////////////////////////////*/
 
@@ -1112,7 +744,7 @@ contract ArtGobblersTest is DSTestPlus {
             vm.prank(address(gobblers));
             goo.mintForGobblers(users[0], cost);
             vm.prank(users[0]);
-            gobblers.mintFromGoo(type(uint256).max, false);
+            gobblers.mintFromGoo(type(uint256).max);
         }
     }
 
@@ -1131,7 +763,7 @@ contract ArtGobblersTest is DSTestPlus {
             vm.prank(users[0]);
 
             if (i == maxMintableWithGoo) vm.expectRevert("UNDEFINED");
-            gobblers.mintFromGoo(type(uint256).max, false);
+            gobblers.mintFromGoo(type(uint256).max);
         }
     }
 
@@ -1145,7 +777,7 @@ contract ArtGobblersTest is DSTestPlus {
             vm.prank(address(gobblers));
             goo.mintForGobblers(users[0], cost);
             vm.prank(users[0]);
-            gobblers.mintFromGoo(type(uint256).max, false);
+            gobblers.mintFromGoo(type(uint256).max);
         }
 
         gobblers.mintReservedGobblers(gobblers.RESERVED_SUPPLY() / 2);
@@ -1161,7 +793,7 @@ contract ArtGobblersTest is DSTestPlus {
             vm.prank(address(gobblers));
             goo.mintForGobblers(users[0], cost);
             vm.prank(users[0]);
-            gobblers.mintFromGoo(type(uint256).max, false);
+            gobblers.mintFromGoo(type(uint256).max);
         }
 
         gobblers.mintReservedGobblers(gobblers.RESERVED_SUPPLY() / 2);
@@ -1184,7 +816,7 @@ contract ArtGobblersTest is DSTestPlus {
             uint256 gobblersOwnedBefore = gobblers.balanceOf(addr);
 
             vm.prank(addr);
-            gobblers.mintFromGoo(type(uint256).max, false);
+            gobblers.mintFromGoo(type(uint256).max);
 
             assertEq(gobblers.balanceOf(addr), gobblersOwnedBefore + 1);
         }
