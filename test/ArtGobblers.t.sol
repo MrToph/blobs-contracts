@@ -80,6 +80,12 @@ contract ArtGobblersTest is DSTestPlus {
             "base",
             ""
         );
+
+        // users approve contract
+        for(uint256 i = 0; i < users.length; ++i) {
+            vm.prank(users[i]);
+            goo.approve(address(gobblers), type(uint256).max);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
