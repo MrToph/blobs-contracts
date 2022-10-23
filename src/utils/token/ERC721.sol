@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
+/** Base: https://github.com/artgobblers/art-gobblers/tree/a337353df07193225aad40e8d6659bd67b0abb20
+    Modifications:
+    - removed gobbler related fields from structures like emissionMultiples, balances, etc.
+    - added `totalSupply` as it's required for NounsGovernance: https://github.com/nounsDAO/nouns-monorepo/blob/fe099f0df11e5e4de81cc0cd6a2186d3c82135ed/packages/nouns-contracts/contracts/governance/NounsDAOInterfaces.sol#L442
+    - added `_beforeTokenTransfer` for ERC721Checkpointable to hook into
+ */
 import {ERC721TokenReceiver} from "solmate/tokens/ERC721.sol";
 
 /// @notice ERC721 implementation optimized for ArtGobblers by packing balanceOf/ownerOf with user/attribute data.
 /// @author Modified from Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
-abstract contract GobblersERC721 {
+abstract contract ERC721 {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -42,6 +48,7 @@ abstract contract GobblersERC721 {
     mapping(uint256 => GobblerData) public getGobblerData;
     // @notice Maps an address to number of gobblers owned 
     mapping(address => uint256) internal _balanceOf;
+    uint256 public totalSupply;
 
     function ownerOf(uint256 id) external view returns (address owner) {
         require((owner = getGobblerData[id].owner) != address(0), "NOT_MINTED");
@@ -158,6 +165,8 @@ abstract contract GobblersERC721 {
             "NOT_AUTHORIZED"
         );
 
+        _beforeTokenTransfer(from, to, id);
+
         delete getApproved[id];
 
         getGobblerData[id].owner = to;
@@ -174,9 +183,11 @@ abstract contract GobblersERC721 {
         // Does not check if the token was already minted or the recipient is address(0)
         // because ArtGobblers.sol manages its ids in such a way that it ensures it won't
         // double mint and will only mint to safe addresses or msg.sender who cannot be zero.
+        _beforeTokenTransfer(address(0), to, id);
 
         unchecked {
             ++_balanceOf[to];
+            ++totalSupply;
         }
 
         getGobblerData[id].owner = to;
@@ -192,18 +203,33 @@ abstract contract GobblersERC721 {
         // Doesn't check if the tokens were already minted or the recipient is address(0)
         // because ArtGobblers.sol manages its ids in such a way that it ensures it won't
         // double mint and will only mint to safe addresses or msg.sender who cannot be zero.
-        unchecked {
-            _balanceOf[to] += amount;
-        }
 
         unchecked {
             for (uint256 i = 0; i < amount; ++i) {
-                getGobblerData[++lastMintedId].owner = to;
-
-                emit Transfer(address(0), to, lastMintedId);
+                _mint(to, ++lastMintedId);
             }
         }
 
         return lastMintedId;
     }
+
+    /**
+     * @dev Hook that is called before any token transfer. This includes minting
+     * and burning.
+     *
+     * Calling conditions:
+     *
+     * - When `from` and `to` are both non-zero, ``from``'s `tokenId` will be
+     * transferred to `to`.
+     * - When `from` is zero, `tokenId` will be minted for `to`.
+     * - When `to` is zero, ``from``'s `tokenId` will be burned.
+     * - `from` and `to` are never both zero.
+     *
+     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
+     */
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal virtual {}
 }

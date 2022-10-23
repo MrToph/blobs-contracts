@@ -2,6 +2,10 @@
 pragma solidity >=0.8.0;
 
 /** Base: https://github.com/artgobblers/art-gobblers/tree/a337353df07193225aad40e8d6659bd67b0abb20
+    Modifications:
+    - removed anything related to goo balances, adding / removing goo
+    - removed legendary NFTs
+    - removed anything related to gobbling art
  */
 import {Owned} from "solmate/auth/Owned.sol";
 import {ERC721} from "solmate/tokens/ERC721.sol";
@@ -14,7 +18,7 @@ import {toWadUnsafe, toDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
 import {LogisticVRGDA} from "VRGDAs/LogisticVRGDA.sol";
 
 import {RandProvider} from "./utils/rand/RandProvider.sol";
-import {GobblersERC721} from "./utils/token/GobblersERC721.sol";
+import {ERC721Checkpointable} from "./utils/token/ERC721Checkpointable.sol";
 
 import {Goo} from "./Goo.sol";
 
@@ -22,7 +26,7 @@ import {Goo} from "./Goo.sol";
 /// @author FrankieIsLost <frankie@paradigm.xyz>
 /// @author transmissions11 <t11s@paradigm.xyz>
 /// @notice An experimental decentralized art factory by Justin Roiland and Paradigm.
-contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiver {
+contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiver {
     using LibString for uint256;
     using FixedPointMathLib for uint256;
 
@@ -236,7 +240,7 @@ contract ArtGobblers is GobblersERC721, LogisticVRGDA, Owned, ERC1155TokenReceiv
         string memory _baseUri,
         string memory _unrevealedUri
     )
-        GobblersERC721("Art Gobblers", "GOBBLER") // TODO: get name
+        ERC721Checkpointable("Goo Blobs", "BLOBS") // TODO: get name
         Owned(msg.sender)
         LogisticVRGDA(
             69.42e18, // Target price.
