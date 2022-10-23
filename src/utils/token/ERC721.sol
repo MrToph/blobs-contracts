@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-/** Base: https://github.com/artgobblers/art-gobblers/tree/a337353df07193225aad40e8d6659bd67b0abb20
-    Modifications:
-    - removed gobbler related fields from structures like emissionMultiples, balances, etc.
-    - added `totalSupply` as it's required for NounsGovernance: https://github.com/nounsDAO/nouns-monorepo/blob/fe099f0df11e5e4de81cc0cd6a2186d3c82135ed/packages/nouns-contracts/contracts/governance/NounsDAOInterfaces.sol#L442
-    - added `_beforeTokenTransfer` for ERC721Checkpointable to hook into
+/**
+ * Base: https://github.com/artgobblers/art-gobblers/tree/a337353df07193225aad40e8d6659bd67b0abb20
+ * Modifications:
+ * - removed gobbler related fields from structures like emissionMultiples, balances, etc.
+ * - added `totalSupply` as it's required for NounsGovernance: https://github.com/nounsDAO/nouns-monorepo/blob/fe099f0df11e5e4de81cc0cd6a2186d3c82135ed/packages/nouns-contracts/contracts/governance/NounsDAOInterfaces.sol#L442
+ * - added `_beforeTokenTransfer` for ERC721Checkpointable to hook into
  */
 import {ERC721TokenReceiver} from "solmate/tokens/ERC721.sol";
 
@@ -46,7 +47,7 @@ abstract contract ERC721 {
 
     /// @notice Maps gobbler ids to their data.
     mapping(uint256 => GobblerData) public getGobblerData;
-    // @notice Maps an address to number of gobblers owned 
+    // @notice Maps an address to number of gobblers owned
     mapping(address => uint256) internal _balanceOf;
     uint256 public totalSupply;
 
@@ -97,41 +98,28 @@ abstract contract ERC721 {
         emit ApprovalForAll(msg.sender, operator, approved);
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) external {
+    function transferFrom(address from, address to, uint256 id) external {
         _transferFrom(from, to, id);
     }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) external {
+    function safeTransferFrom(address from, address to, uint256 id) external {
         _transferFrom(from, to, id);
 
         require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") ==
-                ERC721TokenReceiver.onERC721Received.selector,
+            to.code.length == 0
+                || ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "")
+                    == ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id,
-        bytes calldata data
-    ) external {
+    function safeTransferFrom(address from, address to, uint256 id, bytes calldata data) external {
         _transferFrom(from, to, id);
 
         require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) ==
-                ERC721TokenReceiver.onERC721Received.selector,
+            to.code.length == 0
+                || ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data)
+                    == ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
@@ -141,28 +129,22 @@ abstract contract ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
-        return
-            interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
+        return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
+            || interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
+            || interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
     }
 
     /*//////////////////////////////////////////////////////////////
                            INTERNAL MINT & TRANSFER LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    function _transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) internal {
+    function _transferFrom(address from, address to, uint256 id) internal {
         require(from == getGobblerData[id].owner, "WRONG_FROM");
 
         require(to != address(0), "INVALID_RECIPIENT");
 
         require(
-            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
-            "NOT_AUTHORIZED"
+            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id], "NOT_AUTHORIZED"
         );
 
         _beforeTokenTransfer(from, to, id);
@@ -195,11 +177,7 @@ abstract contract ERC721 {
         emit Transfer(address(0), to, id);
     }
 
-    function _batchMint(
-        address to,
-        uint256 amount,
-        uint256 lastMintedId
-    ) internal returns (uint256) {
+    function _batchMint(address to, uint256 amount, uint256 lastMintedId) internal returns (uint256) {
         // Doesn't check if the tokens were already minted or the recipient is address(0)
         // because ArtGobblers.sol manages its ids in such a way that it ensures it won't
         // double mint and will only mint to safe addresses or msg.sender who cannot be zero.
@@ -227,9 +205,5 @@ abstract contract ERC721 {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal virtual {}
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal virtual {}
 }

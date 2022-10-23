@@ -83,7 +83,7 @@ contract RandProviderTest is DSTestPlus {
         );
 
         // users approve contract
-        for(uint256 i = 0; i < users.length; ++i) {
+        for (uint256 i = 0; i < users.length; ++i) {
             vm.prank(users[i]);
             goo.approve(address(gobblers), type(uint256).max);
         }
@@ -103,7 +103,7 @@ contract RandProviderTest is DSTestPlus {
 
     function testRandomnessIsFulfilled() public {
         //initially, randomness should be 0
-        (uint64 randomSeed, , , , ) = gobblers.gobblerRevealsData();
+        (uint64 randomSeed,,,,) = gobblers.gobblerRevealsData();
         assertEq(randomSeed, 0);
         mintGobblerToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
@@ -111,7 +111,7 @@ contract RandProviderTest is DSTestPlus {
         uint256 randomness = uint256(keccak256(abi.encodePacked("seed")));
         vrfCoordinator.callBackWithRandomness(requestId, randomness, address(randProvider));
         //randomness from vrf should be set in gobblers contract
-        (randomSeed, , , , ) = gobblers.gobblerRevealsData();
+        (randomSeed,,,,) = gobblers.gobblerRevealsData();
         assertEq(randomSeed, uint64(randomness));
     }
 

@@ -15,8 +15,8 @@ contract DeployGoerli is DeployBase {
     string public constant gobblerUnrevealedUri = "https://testnet.ag.xyz/api/nfts/unrevealed";
 
     constructor()
+        // Team cold wallet:
         DeployBase(
-            // Team cold wallet:
             coldWallet,
             // Merkle root:
             keccak256(abi.encodePacked(root)),

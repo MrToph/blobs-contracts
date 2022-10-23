@@ -82,7 +82,7 @@ contract ArtGobblersTest is DSTestPlus {
         );
 
         // users approve contract
-        for(uint256 i = 0; i < users.length; ++i) {
+        for (uint256 i = 0; i < users.length; ++i) {
             vm.prank(users[i]);
             goo.approve(address(gobblers), type(uint256).max);
         }
@@ -279,8 +279,7 @@ contract ArtGobblersTest is DSTestPlus {
     function testLegendaryGobblerMintBeforeStart() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                ArtGobblers.LegendaryAuctionNotStarted.selector,
-                gobblers.LEGENDARY_AUCTION_INTERVAL()
+                ArtGobblers.LegendaryAuctionNotStarted.selector, gobblers.LEGENDARY_AUCTION_INTERVAL()
             )
         );
         vm.prank(users[0]);
@@ -434,7 +433,6 @@ contract ArtGobblersTest is DSTestPlus {
             assertEq(gobblers.ownerOf(curId), users[0]);
         }
 
-
         //remove one id such that payment is insufficient
         ids.pop();
 
@@ -486,7 +484,6 @@ contract ArtGobblersTest is DSTestPlus {
             assertEq(gobblers.ownerOf(curId), users[0]);
         }
 
-
         ids.pop();
         ids.push(999);
 
@@ -528,7 +525,9 @@ contract ArtGobblersTest is DSTestPlus {
         // Starting price should be 69.
         assertEq(cost, 69);
         setRandomnessAndReveal(cost, "seed");
-        for (uint256 i = 1; i <= cost; ++i) ids.push(i);
+        for (uint256 i = 1; i <= cost; ++i) {
+            ids.push(i);
+        }
 
         ids[0] = mintedLegendaryId; // Try to pass in the legendary we just minted as well.
         vm.prank(users[0]);
@@ -620,9 +619,8 @@ contract ArtGobblersTest is DSTestPlus {
         uint256 currentLegendaryId = gobblers.mintLegendaryGobbler(ids);
 
         //expected URI should not be shuffled
-        string memory expectedURI = string(
-            abi.encodePacked(gobblers.BASE_URI(), uint256(currentLegendaryId).toString())
-        );
+        string memory expectedURI =
+            string(abi.encodePacked(gobblers.BASE_URI(), uint256(currentLegendaryId).toString()));
         string memory actualURI = gobblers.tokenURI(currentLegendaryId);
         assertTrue(stringEquals(actualURI, expectedURI));
     }
@@ -721,13 +719,13 @@ contract ArtGobblersTest is DSTestPlus {
         vm.warp(block.timestamp + 1 days);
         setRandomnessAndReveal(1, "seed");
         // seed used for first reveal.
-        (uint64 firstSeed, , , , ) = gobblers.gobblerRevealsData();
+        (uint64 firstSeed,,,,) = gobblers.gobblerRevealsData();
         // second mint.
         mintGobblerToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
         gobblers.requestRandomSeed();
         // seed we want to use for second reveal.
-        (uint64 secondSeed, , , , ) = gobblers.gobblerRevealsData();
+        (uint64 secondSeed,,,,) = gobblers.gobblerRevealsData();
         // verify that we are trying to use the same seed.
         assertEq(firstSeed, secondSeed);
         // try to reveal with same seed, which should fail.

@@ -64,7 +64,6 @@ contract BenchmarksTest is DSTest {
         vm.prank(address(gobblers));
         goo.mintForGobblers(address(this), type(uint192).max);
 
-
         // approve contract
         goo.approve(address(gobblers), type(uint256).max);
         mintGobblerToAddress(address(this), gobblers.LEGENDARY_AUCTION_INTERVAL());
@@ -102,7 +101,9 @@ contract BenchmarksTest is DSTest {
         uint256 legendaryGobblerCost = legendaryCost;
 
         uint256[] memory ids = new uint256[](legendaryGobblerCost);
-        for (uint256 i = 0; i < legendaryGobblerCost; ++i) ids[i] = i + 1;
+        for (uint256 i = 0; i < legendaryGobblerCost; ++i) {
+            ids[i] = i + 1;
+        }
 
         gobblers.mintLegendaryGobbler(ids);
     }

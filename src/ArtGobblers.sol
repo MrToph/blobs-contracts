@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
-/** Base: https://github.com/artgobblers/art-gobblers/tree/a337353df07193225aad40e8d6659bd67b0abb20
-    Modifications:
-    - removed anything related to goo balances, adding / removing goo
-    - removed legendary NFTs
-    - removed anything related to gobbling art
+/**
+ * Base: https://github.com/artgobblers/art-gobblers/tree/a337353df07193225aad40e8d6659bd67b0abb20
+ * Modifications:
+ * - removed anything related to goo balances, adding / removing goo
+ * - removed legendary NFTs
+ * - removed anything related to gobbling art
  */
 import {Owned} from "solmate/auth/Owned.sol";
 import {ERC721} from "solmate/tokens/ERC721.sol";
@@ -66,10 +67,7 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
 
     /// @notice Maximum amount of gobblers that can be minted via VRGDA.
     // prettier-ignore
-    uint256 public constant MAX_MINTABLE = MAX_SUPPLY
-        - MINTLIST_SUPPLY
-        - LEGENDARY_SUPPLY
-        - RESERVED_SUPPLY;
+    uint256 public constant MAX_MINTABLE = MAX_SUPPLY - MINTLIST_SUPPLY - LEGENDARY_SUPPLY - RESERVED_SUPPLY;
 
     /*//////////////////////////////////////////////////////////////
                            METADATA CONSTANTS
@@ -314,6 +312,7 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
         if (currentPrice > maxPrice) revert PriceExceededMax(currentPrice);
 
         // Decrement the user's goo balance by the current price
+        // TODO: check if team is the correct recipient. same address that receives the team gobblers?
         goo.transferFrom(msg.sender, address(team), currentPrice);
 
         unchecked {
@@ -422,9 +421,15 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
 
             // prettier-ignore
             // If we've minted the full interval or beyond it, the price has decayed to 0.
-            if (numMintedSinceStart >= LEGENDARY_AUCTION_INTERVAL) return 0;
+            if (numMintedSinceStart >= LEGENDARY_AUCTION_INTERVAL) {
+                return 0;
+            }
             // Otherwise decay the price linearly based on what fraction of the interval has been minted.
-            else return FixedPointMathLib.unsafeDivUp(startPrice * (LEGENDARY_AUCTION_INTERVAL - numMintedSinceStart), LEGENDARY_AUCTION_INTERVAL);
+            else {
+                return FixedPointMathLib.unsafeDivUp(
+                    startPrice * (LEGENDARY_AUCTION_INTERVAL - numMintedSinceStart), LEGENDARY_AUCTION_INTERVAL
+                );
+            }
         }
     }
 
@@ -540,12 +545,14 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
                 //////////////////////////////////////////////////////////////*/
 
                 // Get the index of the swap id.
-                uint64 swapIndex = getGobblerData[swapId].idx == 0
+                uint64 swapIndex =
+                    getGobblerData[swapId].idx == 0
                     ? uint64(swapId) // Hasn't been shuffled before.
                     : getGobblerData[swapId].idx; // Shuffled before.
 
                 // Get the index of the current id.
-                uint64 currentIndex = getGobblerData[currentId].idx == 0
+                uint64 currentIndex =
+                    getGobblerData[currentId].idx == 0
                     ? uint64(currentId) // Hasn't been shuffled before.
                     : getGobblerData[currentId].idx; // Shuffled before.
 
@@ -606,8 +613,9 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
         if (gobblerId < FIRST_LEGENDARY_GOBBLER_ID) revert("NOT_MINTED");
 
         // Between FIRST_LEGENDARY_GOBBLER_ID and FIRST_LEGENDARY_GOBBLER_ID + numSold are minted legendaries.
-        if (gobblerId < FIRST_LEGENDARY_GOBBLER_ID + legendaryGobblerAuctionData.numSold)
+        if (gobblerId < FIRST_LEGENDARY_GOBBLER_ID + legendaryGobblerAuctionData.numSold) {
             return string.concat(BASE_URI, gobblerId.toString());
+        }
 
         revert("NOT_MINTED"); // Unminted legendaries and invalid token ids.
     }

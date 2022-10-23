@@ -70,23 +70,18 @@ contract VRGDAsTest is DSTestPlus {
     // }
 
     function testNoOverflowForMostGobblers(uint256 timeSinceStart, uint256 sold) public {
-        gobblers.getVRGDAPrice(
-            toDaysWadUnsafe(bound(timeSinceStart, 0 days, ONE_THOUSAND_YEARS)),
-            bound(sold, 0, 1730)
-        );
+        gobblers.getVRGDAPrice(toDaysWadUnsafe(bound(timeSinceStart, 0 days, ONE_THOUSAND_YEARS)), bound(sold, 0, 1730));
     }
 
     function testNoOverflowForAllGobblers(uint256 timeSinceStart, uint256 sold) public {
         gobblers.getVRGDAPrice(
-            toDaysWadUnsafe(bound(timeSinceStart, 3870 days, ONE_THOUSAND_YEARS)),
-            bound(sold, 0, 6391)
+            toDaysWadUnsafe(bound(timeSinceStart, 3870 days, ONE_THOUSAND_YEARS)), bound(sold, 0, 6391)
         );
     }
 
     function testFailOverflowForBeyondLimitGobblers(uint256 timeSinceStart, uint256 sold) public {
         gobblers.getVRGDAPrice(
-            toDaysWadUnsafe(bound(timeSinceStart, 0 days, ONE_THOUSAND_YEARS)),
-            bound(sold, 6392, type(uint128).max)
+            toDaysWadUnsafe(bound(timeSinceStart, 0 days, ONE_THOUSAND_YEARS)), bound(sold, 6392, type(uint128).max)
         );
     }
 
