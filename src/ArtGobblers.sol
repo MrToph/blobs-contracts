@@ -58,16 +58,13 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
     /// @notice Maximum amount of gobblers mintable via mintlist.
     uint256 public constant MINTLIST_SUPPLY = 2000;
 
-    /// @notice Maximum amount of mintable legendary gobblers.
-    uint256 public constant LEGENDARY_SUPPLY = 10;
-
     /// @notice Maximum amount of gobblers split between the reserves.
     /// @dev Set to comprise 20% of the sum of goo mintable gobblers + reserved gobblers.
-    uint256 public constant RESERVED_SUPPLY = (MAX_SUPPLY - MINTLIST_SUPPLY - LEGENDARY_SUPPLY) / 5;
+    uint256 public constant RESERVED_SUPPLY = (MAX_SUPPLY - MINTLIST_SUPPLY) / 5;
 
     /// @notice Maximum amount of gobblers that can be minted via VRGDA.
     // prettier-ignore
-    uint256 public constant MAX_MINTABLE = MAX_SUPPLY - MINTLIST_SUPPLY - LEGENDARY_SUPPLY - RESERVED_SUPPLY;
+    uint256 public constant MAX_MINTABLE = MAX_SUPPLY - MINTLIST_SUPPLY - RESERVED_SUPPLY;
 
     /*//////////////////////////////////////////////////////////////
                            METADATA CONSTANTS
@@ -103,37 +100,12 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
                          STANDARD GOBBLER STATE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Id of the most recently minted non legendary gobbler.
-    /// @dev Will be 0 if no non legendary gobblers have been minted yet.
-    uint128 public currentNonLegendaryId;
+    /// @notice Id of the most recently minted gobbler.
+    /// @dev Will be 0 if no gobblers have been minted yet.
+    uint128 public lastUsedId;
 
     /// @notice The number of gobblers minted to the reserves.
     uint256 public numMintedForReserves;
-
-    /*//////////////////////////////////////////////////////////////
-                     LEGENDARY GOBBLER AUCTION STATE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Initial legendary gobbler auction price.
-    uint256 public constant LEGENDARY_GOBBLER_INITIAL_START_PRICE = 69;
-
-    /// @notice The last LEGENDARY_SUPPLY ids are reserved for legendary gobblers.
-    uint256 public constant FIRST_LEGENDARY_GOBBLER_ID = MAX_SUPPLY - LEGENDARY_SUPPLY + 1;
-
-    /// @notice Legendary auctions begin each time a multiple of these many gobblers have been minted from goo.
-    /// @dev We add 1 to LEGENDARY_SUPPLY because legendary auctions begin only after the first interval.
-    uint256 public constant LEGENDARY_AUCTION_INTERVAL = MAX_MINTABLE / (LEGENDARY_SUPPLY + 1);
-
-    /// @notice Struct holding data required for legendary gobbler auctions.
-    struct LegendaryGobblerAuctionData {
-        // Start price of current legendary gobbler auction.
-        uint128 startPrice;
-        // Number of legendary gobblers sold so far.
-        uint128 numSold;
-    }
-
-    /// @notice Data about the current legendary gobbler auction.
-    LegendaryGobblerAuctionData public legendaryGobblerAuctionData;
 
     /*//////////////////////////////////////////////////////////////
                           GOBBLER REVEAL STATE
@@ -157,13 +129,6 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
     GobblerRevealsData public gobblerRevealsData;
 
     /*//////////////////////////////////////////////////////////////
-                            GOBBLED ART STATE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Maps gobbler ids to NFT contracts and their ids to the # of those NFT ids gobbled by the gobbler.
-    mapping(uint256 => mapping(address => mapping(uint256 => uint256))) public getCopiesOfArtGobbledByGobbler;
-
-    /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
@@ -171,7 +136,6 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
 
     event GobblerClaimed(address indexed user, uint256 indexed gobblerId);
     event GobblerPurchased(address indexed user, uint256 indexed gobblerId, uint256 price);
-    event LegendaryGobblerMinted(address indexed user, uint256 indexed gobblerId, uint256[] burnedGobblerIds);
     event ReservedGobblersMinted(address indexed user, uint256 lastMintedGobblerId, uint256 numGobblersEach);
 
     event RandomnessFulfilled(uint256 randomness);
@@ -179,8 +143,6 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
     event RandProviderUpgraded(address indexed user, RandProvider indexed newRandProvider);
 
     event GobblersRevealed(address indexed user, uint256 numGobblers, uint256 lastRevealedId);
-
-    event ArtGobbled(address indexed user, uint256 indexed gobblerId, address indexed nft, uint256 id);
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -198,19 +160,9 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
 
     error ReserveImbalance();
 
-    error Cannibalism();
-    error OwnerMismatch(address owner);
-
-    error NoRemainingLegendaryGobblers();
-    error CannotBurnLegendary(uint256 gobblerId);
-    error InsufficientGobblerAmount(uint256 cost);
-    error LegendaryAuctionNotStarted(uint256 gobblersLeft);
-
     error PriceExceededMax(uint256 currentPrice);
 
     error NotEnoughRemainingToBeRevealed(uint256 totalRemainingToBeRevealed);
-
-    error UnauthorizedCaller(address caller);
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
@@ -259,9 +211,6 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
         BASE_URI = _baseUri;
         UNREVEALED_URI = _unrevealedUri;
 
-        // Set the starting price for the first legendary gobbler auction.
-        legendaryGobblerAuctionData.startPrice = uint128(LEGENDARY_GOBBLER_INITIAL_START_PRICE);
-
         // Reveal for initial mint must wait a day from the start of the mint.
         gobblerRevealsData.nextRevealTimestamp = uint64(_mintStart + 1 days);
     }
@@ -289,7 +238,7 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
 
         unchecked {
             // Overflow should be impossible due to supply cap of 10,000.
-            emit GobblerClaimed(msg.sender, gobblerId = ++currentNonLegendaryId);
+            emit GobblerClaimed(msg.sender, gobblerId = ++lastUsedId);
         }
 
         _mint(msg.sender, gobblerId);
@@ -318,7 +267,7 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
         unchecked {
             ++numMintedFromGoo; // Overflow should be impossible due to the supply cap.
 
-            emit GobblerPurchased(msg.sender, gobblerId = ++currentNonLegendaryId, currentPrice);
+            emit GobblerPurchased(msg.sender, gobblerId = ++lastUsedId, currentPrice);
         }
 
         _mint(msg.sender, gobblerId);
@@ -334,103 +283,6 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
         uint256 timeSinceStart = block.timestamp - mintStart;
 
         return getVRGDAPrice(toDaysWadUnsafe(timeSinceStart), numMintedFromGoo);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                     LEGENDARY GOBBLER AUCTION LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Mint a legendary gobbler by burning multiple standard gobblers.
-    /// @param gobblerIds The ids of the standard gobblers to burn.
-    /// @return gobblerId The id of the legendary gobbler that was minted.
-    function mintLegendaryGobbler(uint256[] calldata gobblerIds) external returns (uint256 gobblerId) {
-        // Get the number of legendary gobblers sold up until this point.
-        uint256 numSold = legendaryGobblerAuctionData.numSold;
-
-        gobblerId = FIRST_LEGENDARY_GOBBLER_ID + numSold; // Assign id.
-
-        // If the gobbler id would be greater than the max supply, there are no remaining legendaries.
-        if (gobblerId > MAX_SUPPLY) revert NoRemainingLegendaryGobblers();
-
-        // This will revert if the auction hasn't started yet, no need to check here as well.
-        uint256 cost = legendaryGobblerPrice();
-
-        if (gobblerIds.length < cost) revert InsufficientGobblerAmount(cost);
-
-        // Overflow should not occur in here, as most math is on emission multiples, which are inherently small.
-        unchecked {
-            /*//////////////////////////////////////////////////////////////
-                                    BATCH BURN LOGIC
-            //////////////////////////////////////////////////////////////*/
-
-            uint256 id; // Storing outside the loop saves ~7 gas per iteration.
-
-            for (uint256 i = 0; i < cost; ++i) {
-                id = gobblerIds[i];
-
-                if (id >= FIRST_LEGENDARY_GOBBLER_ID) revert CannotBurnLegendary(id);
-
-                GobblerData storage gobbler = getGobblerData[id];
-
-                require(gobbler.owner == msg.sender, "WRONG_FROM");
-
-                delete getApproved[id];
-
-                emit Transfer(msg.sender, gobbler.owner = address(0), id);
-            }
-
-            /*//////////////////////////////////////////////////////////////
-                                 LEGENDARY MINTING LOGIC
-            //////////////////////////////////////////////////////////////*/
-            _balanceOf[msg.sender] -= cost;
-
-            // New start price is the max of LEGENDARY_GOBBLER_INITIAL_START_PRICE and cost * 2.
-            legendaryGobblerAuctionData.startPrice = uint120(
-                cost <= LEGENDARY_GOBBLER_INITIAL_START_PRICE / 2 ? LEGENDARY_GOBBLER_INITIAL_START_PRICE : cost * 2
-            );
-            legendaryGobblerAuctionData.numSold = uint128(numSold + 1); // Increment the # of legendaries sold.
-
-            // If gobblerIds has 1,000 elements this should cost around ~270,000 gas.
-            emit LegendaryGobblerMinted(msg.sender, gobblerId, gobblerIds[:cost]);
-
-            _mint(msg.sender, gobblerId);
-        }
-    }
-
-    /// @notice Calculate the legendary gobbler price in terms of gobblers, according to a linear decay function.
-    /// @dev The price of a legendary gobbler decays as gobblers are minted. The first legendary auction begins when
-    /// 1 LEGENDARY_AUCTION_INTERVAL worth of gobblers are minted, and the price decays linearly while the next interval of
-    /// gobblers are minted. Every time an additional interval is minted, a new auction begins until all legendaries have been sold.
-    /// @return price of legendary gobbler, in terms of gobblers.
-    function legendaryGobblerPrice() public view returns (uint256) {
-        // Retrieve and cache various auction parameters and variables.
-        uint256 startPrice = legendaryGobblerAuctionData.startPrice;
-        uint256 numSold = legendaryGobblerAuctionData.numSold;
-        uint256 mintedFromGoo = numMintedFromGoo;
-
-        unchecked {
-            // The number of gobblers minted at the start of the auction is computed by multiplying the # of
-            // intervals that must pass before the next auction begins by the number of gobblers in each interval.
-            uint256 numMintedAtStart = (numSold + 1) * LEGENDARY_AUCTION_INTERVAL;
-
-            // If not enough gobblers have been minted to start the auction yet, return how many need to be minted.
-            if (numMintedAtStart > mintedFromGoo) revert LegendaryAuctionNotStarted(numMintedAtStart - mintedFromGoo);
-
-            // Compute how many gobblers were minted since the auction began.
-            uint256 numMintedSinceStart = mintedFromGoo - numMintedAtStart;
-
-            // prettier-ignore
-            // If we've minted the full interval or beyond it, the price has decayed to 0.
-            if (numMintedSinceStart >= LEGENDARY_AUCTION_INTERVAL) {
-                return 0;
-            }
-            // Otherwise decay the price linearly based on what fraction of the interval has been minted.
-            else {
-                return FixedPointMathLib.unsafeDivUp(
-                    startPrice * (LEGENDARY_AUCTION_INTERVAL - numMintedSinceStart), LEGENDARY_AUCTION_INTERVAL
-                );
-            }
-        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -454,7 +306,7 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
             gobblerRevealsData.waitingForSeed = true;
 
             // Compute the number of gobblers to be revealed with the seed.
-            uint256 toBeRevealed = currentNonLegendaryId - gobblerRevealsData.lastRevealedId;
+            uint256 toBeRevealed = lastUsedId - gobblerRevealsData.lastRevealedId;
 
             // Ensure that there are more than 0 gobblers to be revealed,
             // otherwise the contract could waste LINK revealing nothing.
@@ -527,9 +379,8 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
                                       DETERMINE RANDOM SWAP
                 //////////////////////////////////////////////////////////////*/
 
-                // Number of ids that have not been revealed. Subtract 1
-                // because we don't want to include any legendaries in the swap.
-                uint256 remainingIds = FIRST_LEGENDARY_GOBBLER_ID - lastRevealedId - 1;
+                // Number of ids that have not been revealed.
+                uint256 remainingIds = MAX_SUPPLY - lastRevealedId;
 
                 // Randomly pick distance for swap.
                 uint256 distance = randomSeed % remainingIds;
@@ -606,18 +457,11 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
             return string.concat(BASE_URI, uint256(getGobblerData[gobblerId].idx).toString());
         }
 
-        // Between lastRevealed + 1 and currentNonLegendaryId are minted but not revealed.
-        if (gobblerId <= currentNonLegendaryId) return UNREVEALED_URI;
+        // Between lastRevealed + 1 and lastUsedId are minted but not revealed.
+        if (gobblerId <= lastUsedId) return UNREVEALED_URI;
 
-        // Between currentNonLegendaryId and FIRST_LEGENDARY_GOBBLER_ID are unminted.
-        if (gobblerId < FIRST_LEGENDARY_GOBBLER_ID) revert("NOT_MINTED");
-
-        // Between FIRST_LEGENDARY_GOBBLER_ID and FIRST_LEGENDARY_GOBBLER_ID + numSold are minted legendaries.
-        if (gobblerId < FIRST_LEGENDARY_GOBBLER_ID + legendaryGobblerAuctionData.numSold) {
-            return string.concat(BASE_URI, gobblerId.toString());
-        }
-
-        revert("NOT_MINTED"); // Unminted legendaries and invalid token ids.
+        // Between lastUsedId and MAX_SUPPLY are unminted.
+        revert("NOT_MINTED");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -641,10 +485,10 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
         }
 
         // Mint numGobblersEach gobblers to both the team and community reserve.
-        lastMintedGobblerId = _batchMint(team, numGobblersEach, currentNonLegendaryId);
+        lastMintedGobblerId = _batchMint(team, numGobblersEach, lastUsedId);
         lastMintedGobblerId = _batchMint(community, numGobblersEach, lastMintedGobblerId);
 
-        currentNonLegendaryId = uint128(lastMintedGobblerId); // Set currentNonLegendaryId.
+        lastUsedId = uint128(lastMintedGobblerId); // Set lastUsedId.
 
         emit ReservedGobblersMinted(msg.sender, lastMintedGobblerId, numGobblersEach);
     }

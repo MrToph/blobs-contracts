@@ -24,8 +24,6 @@ contract BenchmarksTest is DSTest {
     RandProvider private randProvider;
     Goo private goo;
 
-    uint256 legendaryCost;
-
     bytes32 private keyHash;
     uint256 private fee;
 
@@ -66,11 +64,9 @@ contract BenchmarksTest is DSTest {
 
         // approve contract
         goo.approve(address(gobblers), type(uint256).max);
-        mintGobblerToAddress(address(this), gobblers.LEGENDARY_AUCTION_INTERVAL());
+        mintGobblerToAddress(address(this), 1000);
 
         vm.warp(block.timestamp + 30 days);
-
-        legendaryCost = gobblers.legendaryGobblerPrice();
 
         bytes32 requestId = gobblers.requestRandomSeed();
         uint256 randomness = uint256(keccak256(abi.encodePacked("seed")));
@@ -79,10 +75,6 @@ contract BenchmarksTest is DSTest {
 
     function testGobblerPrice() public view {
         gobblers.gobblerPrice();
-    }
-
-    function testLegendaryGobblersPrice() public view {
-        gobblers.legendaryGobblerPrice();
     }
 
     function testMintGobbler() public {
@@ -95,17 +87,6 @@ contract BenchmarksTest is DSTest {
 
     function testRevealGobblers() public {
         gobblers.revealGobblers(100);
-    }
-
-    function testMintLegendaryGobbler() public {
-        uint256 legendaryGobblerCost = legendaryCost;
-
-        uint256[] memory ids = new uint256[](legendaryGobblerCost);
-        for (uint256 i = 0; i < legendaryGobblerCost; ++i) {
-            ids[i] = i + 1;
-        }
-
-        gobblers.mintLegendaryGobbler(ids);
     }
 
     function testMintReservedGobblers() public {
