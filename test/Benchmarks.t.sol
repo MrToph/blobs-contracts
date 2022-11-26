@@ -5,7 +5,7 @@ import {DSTest} from "ds-test/test.sol";
 import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {ArtGobblers} from "../src/ArtGobblers.sol";
+import {Blobs} from "../src/Blobs.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
 import {Goo} from "../src/Goo.sol";
@@ -18,7 +18,7 @@ contract BenchmarksTest is DSTest {
     Utilities internal utils;
     address payable[] internal users;
 
-    ArtGobblers private gobblers;
+    Blobs private gobblers;
     VRFCoordinatorMock private vrfCoordinator;
     LinkToken private linkToken;
     RandProvider private randProvider;
@@ -39,7 +39,7 @@ contract BenchmarksTest is DSTest {
         address gobblerAddress = utils.predictContractAddress(address(this), 2);
 
         randProvider = new ChainlinkV1RandProvider(
-            ArtGobblers(gobblerAddress),
+            Blobs(gobblerAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
@@ -48,7 +48,7 @@ contract BenchmarksTest is DSTest {
 
         goo = new Goo(gobblerAddress, address(0xDEAD));
 
-        gobblers = new ArtGobblers(
+        gobblers = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,

@@ -6,7 +6,7 @@ import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {stdError} from "forge-std/Test.sol";
-import {ArtGobblers, FixedPointMathLib} from "../src/ArtGobblers.sol";
+import {Blobs, FixedPointMathLib} from "../src/Blobs.sol";
 import {Goo} from "../src/Goo.sol";
 import {GobblerReserve} from "../src/utils/GobblerReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
@@ -19,7 +19,7 @@ import {LibString} from "solmate/utils/LibString.sol";
 import {fromDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
 
 /// @notice Unit test for Art Gobbler Contract.
-contract ArtGobblersTest is DSTestPlus {
+contract BlobsTest is DSTestPlus {
     using LibString for uint256;
 
     Vm internal immutable vm = Vm(HEVM_ADDRESS);
@@ -27,7 +27,7 @@ contract ArtGobblersTest is DSTestPlus {
     Utilities internal utils;
     address payable[] internal users;
 
-    ArtGobblers internal gobblers;
+    Blobs internal gobblers;
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
@@ -53,10 +53,10 @@ contract ArtGobblersTest is DSTestPlus {
         //gobblers contract will be deployed after 4 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 4);
 
-        team = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
-        community = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
+        team = new GobblerReserve(Blobs(gobblerAddress), address(this));
+        community = new GobblerReserve(Blobs(gobblerAddress), address(this));
         randProvider = new ChainlinkV1RandProvider(
-            ArtGobblers(gobblerAddress),
+            Blobs(gobblerAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
@@ -70,7 +70,7 @@ contract ArtGobblersTest is DSTestPlus {
             address(0xDEAD)
         );
 
-        gobblers = new ArtGobblers(
+        gobblers = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
@@ -99,7 +99,7 @@ contract ArtGobblersTest is DSTestPlus {
         address user = users[0];
         bytes32[] memory proof;
         vm.prank(user);
-        vm.expectRevert(ArtGobblers.MintStartPending.selector);
+        vm.expectRevert(Blobs.MintStartPending.selector);
         gobblers.claimGobbler(proof);
     }
 
@@ -121,14 +121,14 @@ contract ArtGobblersTest is DSTestPlus {
         vm.startPrank(user);
         gobblers.claimGobbler(proof);
 
-        vm.expectRevert(ArtGobblers.AlreadyClaimed.selector);
+        vm.expectRevert(Blobs.AlreadyClaimed.selector);
         gobblers.claimGobbler(proof);
     }
 
     /// @notice Test that an invalid mintlist proof reverts.
     function testMintNotInMintlist() public {
         bytes32[] memory proof;
-        vm.expectRevert(ArtGobblers.InvalidProof.selector);
+        vm.expectRevert(Blobs.InvalidProof.selector);
         gobblers.claimGobbler(proof);
     }
 
@@ -155,7 +155,7 @@ contract ArtGobblersTest is DSTestPlus {
         vm.prank(address(gobblers));
         goo.mintForGobblers(users[0], cost);
         vm.prank(users[0]);
-        vm.expectRevert(abi.encodeWithSelector(ArtGobblers.PriceExceededMax.selector, cost));
+        vm.expectRevert(abi.encodeWithSelector(Blobs.PriceExceededMax.selector, cost));
         gobblers.mintFromGoo(cost - 1);
     }
 
@@ -170,7 +170,7 @@ contract ArtGobblersTest is DSTestPlus {
 
     /// @notice Test that minting reserved gobblers fails if there are no mints.
     function testMintReservedGobblersFailsWithNoMints() public {
-        vm.expectRevert(ArtGobblers.ReserveImbalance.selector);
+        vm.expectRevert(Blobs.ReserveImbalance.selector);
         gobblers.mintReservedGobblers(1);
     }
 
@@ -202,7 +202,7 @@ contract ArtGobblersTest is DSTestPlus {
     function testCantMintTooFastReserved() public {
         mintGobblerToAddress(users[0], 18);
 
-        vm.expectRevert(ArtGobblers.ReserveImbalance.selector);
+        vm.expectRevert(Blobs.ReserveImbalance.selector);
         gobblers.mintReservedGobblers(3);
     }
 
@@ -222,7 +222,7 @@ contract ArtGobblersTest is DSTestPlus {
         gobblers.mintReservedGobblers(1);
         gobblers.mintReservedGobblers(1);
 
-        vm.expectRevert(ArtGobblers.ReserveImbalance.selector);
+        vm.expectRevert(Blobs.ReserveImbalance.selector);
         gobblers.mintReservedGobblers(1);
     }
 
@@ -309,14 +309,14 @@ contract ArtGobblersTest is DSTestPlus {
 
     function testDoesNotAllowRevealingZero() public {
         vm.warp(block.timestamp + 24 hours);
-        vm.expectRevert(ArtGobblers.ZeroToBeRevealed.selector);
+        vm.expectRevert(Blobs.ZeroToBeRevealed.selector);
         gobblers.requestRandomSeed();
     }
 
     /// @notice Cannot request random seed before 24 hours have passed from initial mint.
     function testRevealDelayInitialMint() public {
         mintGobblerToAddress(users[0], 1);
-        vm.expectRevert(ArtGobblers.RequestTooEarly.selector);
+        vm.expectRevert(Blobs.RequestTooEarly.selector);
         gobblers.requestRandomSeed();
     }
 
@@ -332,7 +332,7 @@ contract ArtGobblersTest is DSTestPlus {
 
         mintGobblerToAddress(users[0], 2);
 
-        vm.expectRevert(abi.encodeWithSelector(ArtGobblers.NotEnoughRemainingToBeRevealed.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(Blobs.NotEnoughRemainingToBeRevealed.selector, 1));
         gobblers.revealGobblers(2);
     }
 
@@ -344,7 +344,7 @@ contract ArtGobblersTest is DSTestPlus {
         setRandomnessAndReveal(1, "seed");
         // Attempt reveal before 24 hours have passed
         mintGobblerToAddress(users[0], 1);
-        vm.expectRevert(ArtGobblers.RequestTooEarly.selector);
+        vm.expectRevert(Blobs.RequestTooEarly.selector);
         gobblers.requestRandomSeed();
     }
 
@@ -355,7 +355,7 @@ contract ArtGobblersTest is DSTestPlus {
         setRandomnessAndReveal(1, "seed");
         vm.warp(block.timestamp + 1 days);
         // should fail since there is one remaining gobbler to be revealed with seed
-        vm.expectRevert(ArtGobblers.RevealsPending.selector);
+        vm.expectRevert(Blobs.RevealsPending.selector);
         setRandomnessAndReveal(1, "seed");
     }
 
@@ -396,7 +396,7 @@ contract ArtGobblersTest is DSTestPlus {
         // verify that we are trying to use the same seed.
         assertEq(firstSeed, secondSeed);
         // try to reveal with same seed, which should fail.
-        vm.expectRevert(ArtGobblers.SeedPending.selector);
+        vm.expectRevert(Blobs.SeedPending.selector);
         gobblers.revealGobblers(1);
         assertTrue(true);
     }
@@ -469,7 +469,7 @@ contract ArtGobblersTest is DSTestPlus {
 
         gobblers.mintReservedGobblers(gobblers.RESERVED_SUPPLY() / 2);
 
-        vm.expectRevert(ArtGobblers.ReserveImbalance.selector);
+        vm.expectRevert(Blobs.ReserveImbalance.selector);
         gobblers.mintReservedGobblers(1);
     }
 

@@ -10,7 +10,7 @@ import {RandProvider} from "../../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../../src/utils/rand/ChainlinkV1RandProvider.sol";
 
 import {Goo} from "../../src/Goo.sol";
-import {ArtGobblers} from "../../src/ArtGobblers.sol";
+import {Blobs} from "../../src/Blobs.sol";
 
 abstract contract DeployBase is Script {
     // Environment specific variables.
@@ -29,7 +29,7 @@ abstract contract DeployBase is Script {
     GobblerReserve public communityReserve;
     Goo public goo;
     RandProvider public randProvider;
-    ArtGobblers public artGobblers;
+    Blobs public blobs;
 
     constructor(
         address _teamColdWallet,
@@ -61,10 +61,10 @@ abstract contract DeployBase is Script {
         address gobblerAddress = LibRLP.computeAddress(tx.origin, vm.getNonce(tx.origin) + 3);
 
         // Deploy team and community reserves, owned by cold wallet.
-        teamReserve = new GobblerReserve(ArtGobblers(gobblerAddress), teamColdWallet);
-        communityReserve = new GobblerReserve(ArtGobblers(gobblerAddress), teamColdWallet);
+        teamReserve = new GobblerReserve(Blobs(gobblerAddress), teamColdWallet);
+        communityReserve = new GobblerReserve(Blobs(gobblerAddress), teamColdWallet);
         randProvider = new ChainlinkV1RandProvider(
-            ArtGobblers(gobblerAddress),
+            Blobs(gobblerAddress),
             vrfCoordinator,
             linkToken,
             chainlinkKeyHash,
@@ -75,7 +75,7 @@ abstract contract DeployBase is Script {
         goo = Goo(address(0xDEAD)); // TODO: get deployed Goo here
 
         // Deploy gobblers contract,
-        artGobblers = new ArtGobblers(
+        blobs = new Blobs(
             merkleRoot,
             mintStart,
             goo,

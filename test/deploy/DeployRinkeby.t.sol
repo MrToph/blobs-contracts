@@ -6,7 +6,7 @@ import {DeployRinkeby} from "../../script/deploy/DeployRinkeby.s.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {console} from "forge-std/console.sol";
 
-import {ArtGobblers} from "../../src/ArtGobblers.sol";
+import {Blobs} from "../../src/Blobs.sol";
 
 contract DeployRinkebyTest is DSTestPlus {
     Vm internal immutable vm = Vm(HEVM_ADDRESS);
@@ -24,7 +24,7 @@ contract DeployRinkebyTest is DSTestPlus {
         // Use merkle root as user to test simple proof.
         address user = deployScript.root();
         bytes32[] memory proof;
-        ArtGobblers gobblers = deployScript.artGobblers();
+        Blobs gobblers = deployScript.blobs();
         vm.prank(user);
         gobblers.claimGobbler(proof);
         // Verify gobbler ownership.
@@ -42,7 +42,7 @@ contract DeployRinkebyTest is DSTestPlus {
 
     /// @notice Test URIs are correctly set.
     function testURIs() public {
-        ArtGobblers gobblers = deployScript.artGobblers();
+        Blobs gobblers = deployScript.blobs();
         assertEq(gobblers.BASE_URI(), deployScript.gobblerBaseUri());
         assertEq(gobblers.UNREVEALED_URI(), deployScript.gobblerUnrevealedUri());
     }

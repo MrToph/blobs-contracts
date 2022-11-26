@@ -6,7 +6,7 @@ import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {stdError} from "forge-std/Test.sol";
-import {ArtGobblers} from "../src/ArtGobblers.sol";
+import {Blobs} from "../src/Blobs.sol";
 import {Goo} from "../src/Goo.sol";
 import {GobblerReserve} from "../src/utils/GobblerReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
@@ -25,7 +25,7 @@ contract GobblerReserveTest is DSTestPlus {
     Utilities internal utils;
     address payable[] internal users;
 
-    ArtGobblers internal gobblers;
+    Blobs internal gobblers;
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
@@ -51,10 +51,10 @@ contract GobblerReserveTest is DSTestPlus {
         //gobblers contract will be deployed after 4 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 4);
 
-        team = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
-        community = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
+        team = new GobblerReserve(Blobs(gobblerAddress), address(this));
+        community = new GobblerReserve(Blobs(gobblerAddress), address(this));
         randProvider = new ChainlinkV1RandProvider(
-            ArtGobblers(gobblerAddress),
+            Blobs(gobblerAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
@@ -68,7 +68,7 @@ contract GobblerReserveTest is DSTestPlus {
             address(0xDEAD)
         );
 
-        gobblers = new ArtGobblers(
+        gobblers = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,

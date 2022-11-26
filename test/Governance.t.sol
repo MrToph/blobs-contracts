@@ -5,7 +5,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {Test, stdError} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 import {Utilities} from "./utils/Utilities.sol";
-import {ArtGobblers, FixedPointMathLib} from "../src/ArtGobblers.sol";
+import {Blobs, FixedPointMathLib} from "../src/Blobs.sol";
 import {Goo} from "../src/Goo.sol";
 import {GobblerReserve} from "../src/utils/GobblerReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
@@ -35,7 +35,7 @@ contract GovernanceTest is Test {
     Utilities internal utils;
     address payable[] internal users;
 
-    ArtGobblers internal gobblers;
+    Blobs internal gobblers;
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
@@ -70,7 +70,7 @@ contract GovernanceTest is Test {
         address gobblerAddress = utils.predictContractAddress(address(this), 2);
 
         randProvider = new ChainlinkV1RandProvider(
-            ArtGobblers(gobblerAddress),
+            Blobs(gobblerAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
@@ -84,7 +84,7 @@ contract GovernanceTest is Test {
             address(0xDEAD)
         );
 
-        gobblers = new ArtGobblers(
+        gobblers = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
@@ -173,6 +173,7 @@ contract GovernanceTest is Test {
         string memory description
     )
         internal
+        pure
         returns (
             address[] memory targets,
             uint256[] memory values,
@@ -202,7 +203,7 @@ contract GovernanceTest is Test {
             uint256 gobblersOwnedBefore = gobblers.balanceOf(addr);
 
             vm.prank(addr);
-            // note: transfers goo from caller to ArtGobblers.team
+            // note: transfers goo from caller to Blobs.team
             gobblers.mintFromGoo(type(uint256).max);
 
             assertEq(gobblers.balanceOf(addr), gobblersOwnedBefore + 1);

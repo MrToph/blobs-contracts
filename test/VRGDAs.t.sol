@@ -5,7 +5,7 @@ import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {ArtGobblers} from "../src/ArtGobblers.sol";
+import {Blobs} from "../src/Blobs.sol";
 import {Goo} from "../src/Goo.sol";
 import {LinkToken} from "./utils/mocks/LinkToken.sol";
 import {VRFCoordinatorMock} from "chainlink/v0.8/mocks/VRFCoordinatorMock.sol";
@@ -21,7 +21,7 @@ contract VRGDAsTest is DSTestPlus {
     Utilities internal utils;
     address payable[] internal users;
 
-    ArtGobblers private gobblers;
+    Blobs private gobblers;
     VRFCoordinatorMock private vrfCoordinator;
     LinkToken private linkToken;
 
@@ -41,7 +41,7 @@ contract VRGDAsTest is DSTestPlus {
         address gobblerAddress = utils.predictContractAddress(address(this), 2);
 
         randProvider = new ChainlinkV1RandProvider(
-            ArtGobblers(gobblerAddress),
+            Blobs(gobblerAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
@@ -50,7 +50,7 @@ contract VRGDAsTest is DSTestPlus {
 
         goo = new Goo(gobblerAddress, address(0xDEAD));
 
-        gobblers = new ArtGobblers(
+        gobblers = new Blobs(
             "root",
             block.timestamp,
             goo,
@@ -81,7 +81,7 @@ contract VRGDAsTest is DSTestPlus {
     }
 
     function testFailOverflowForBeyondLimitGobblers(uint256 timeSinceStart, uint256 sold) public {
-        // ArtGobblers calls getVRGDAPrice(., numMintedFromGoo) where numMintedFromGoo < MAX_MINTABLE()
+        // Blobs calls getVRGDAPrice(., numMintedFromGoo) where numMintedFromGoo < MAX_MINTABLE()
         gobblers.getVRGDAPrice(
             toDaysWadUnsafe(bound(timeSinceStart, 0 days, ONE_THOUSAND_YEARS)),
             bound(sold, gobblers.MAX_MINTABLE(), type(uint128).max)

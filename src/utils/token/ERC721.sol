@@ -10,7 +10,7 @@ pragma solidity >=0.8.0;
  */
 import {ERC721TokenReceiver} from "solmate/tokens/ERC721.sol";
 
-/// @notice ERC721 implementation optimized for ArtGobblers by packing balanceOf/ownerOf with user/attribute data.
+/// @notice ERC721 implementation optimized for Blobs by packing balanceOf/ownerOf with user/attribute data.
 /// @author Modified from Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
 abstract contract ERC721 {
     /*//////////////////////////////////////////////////////////////
@@ -163,7 +163,7 @@ abstract contract ERC721 {
 
     function _mint(address to, uint256 id) internal {
         // Does not check if the token was already minted or the recipient is address(0)
-        // because ArtGobblers.sol manages its ids in such a way that it ensures it won't
+        // because Blobs.sol manages its ids in such a way that it ensures it won't
         // double mint and will only mint to safe addresses or msg.sender who cannot be zero.
         _beforeTokenTransfer(address(0), to, id);
 
@@ -179,7 +179,7 @@ abstract contract ERC721 {
 
     function _batchMint(address to, uint256 amount, uint256 lastMintedId) internal returns (uint256) {
         // Doesn't check if the tokens were already minted or the recipient is address(0)
-        // because ArtGobblers.sol manages its ids in such a way that it ensures it won't
+        // because Blobs.sol manages its ids in such a way that it ensures it won't
         // double mint and will only mint to safe addresses or msg.sender who cannot be zero.
 
         unchecked {

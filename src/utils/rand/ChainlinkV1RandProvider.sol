@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import {VRFConsumerBase} from "chainlink/v0.8/VRFConsumerBase.sol";
 
-import {ArtGobblers} from "../../ArtGobblers.sol";
+import {Blobs} from "../../Blobs.sol";
 
 import {RandProvider} from "./RandProvider.sol";
 
@@ -17,7 +17,7 @@ contract ChainlinkV1RandProvider is RandProvider, VRFConsumerBase {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The address of the Art Gobblers contract.
-    ArtGobblers public immutable artGobblers;
+    Blobs public immutable blobs;
 
     /*//////////////////////////////////////////////////////////////
                             VRF CONFIGURATION
@@ -40,13 +40,13 @@ contract ChainlinkV1RandProvider is RandProvider, VRFConsumerBase {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Sets relevant addresses and VRF parameters.
-    /// @param _artGobblers Address of the ArtGobblers contract.
+    /// @param _blobs Address of the Blobs contract.
     /// @param _vrfCoordinator Address of the VRF coordinator.
     /// @param _linkToken Address of the LINK token contract.
     /// @param _chainlinkKeyHash Public key to generate randomness against.
     /// @param _chainlinkFee Fee required to fulfill a VRF request.
     constructor(
-        ArtGobblers _artGobblers,
+        Blobs _blobs,
         address _vrfCoordinator,
         address _linkToken,
         bytes32 _chainlinkKeyHash,
@@ -54,16 +54,16 @@ contract ChainlinkV1RandProvider is RandProvider, VRFConsumerBase {
     )
         VRFConsumerBase(_vrfCoordinator, _linkToken)
     {
-        artGobblers = _artGobblers;
+        blobs = _blobs;
 
         chainlinkKeyHash = _chainlinkKeyHash;
         chainlinkFee = _chainlinkFee;
     }
 
-    /// @notice Request random bytes from Chainlink VRF. Can only by called by the ArtGobblers contract.
+    /// @notice Request random bytes from Chainlink VRF. Can only by called by the Blobs contract.
     function requestRandomBytes() external returns (bytes32 requestId) {
-        // The caller must be the ArtGobblers contract, revert otherwise.
-        if (msg.sender != address(artGobblers)) revert NotGobblers();
+        // The caller must be the Blobs contract, revert otherwise.
+        if (msg.sender != address(blobs)) revert NotGobblers();
 
         emit RandomBytesRequested(requestId);
 
@@ -71,10 +71,10 @@ contract ChainlinkV1RandProvider is RandProvider, VRFConsumerBase {
         return requestRandomness(chainlinkKeyHash, chainlinkFee);
     }
 
-    /// @dev Handles VRF response by calling back into the ArtGobblers contract.
+    /// @dev Handles VRF response by calling back into the Blobs contract.
     function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
         emit RandomBytesReturned(requestId, randomness);
 
-        artGobblers.acceptRandomSeed(requestId, randomness);
+        blobs.acceptRandomSeed(requestId, randomness);
     }
 }

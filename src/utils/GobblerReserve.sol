@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import {Owned} from "solmate/auth/Owned.sol";
 
-import {ArtGobblers} from "../ArtGobblers.sol";
+import {Blobs} from "../Blobs.sol";
 
 /// @title Gobbler Reserve
 /// @author FrankieIsLost <frankie@paradigm.xyz>
@@ -15,13 +15,13 @@ contract GobblerReserve is Owned {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Art Gobblers contract address.
-    ArtGobblers public immutable artGobblers;
+    Blobs public immutable blobs;
 
     /// @notice Sets the addresses of relevant contracts and users.
-    /// @param _artGobblers The address of the ArtGobblers contract.
+    /// @param _blobs The address of the Blobs contract.
     /// @param _owner The address of the owner of Gobbler Reserve.
-    constructor(ArtGobblers _artGobblers, address _owner) Owned(_owner) {
-        artGobblers = _artGobblers;
+    constructor(Blobs _blobs, address _owner) Owned(_owner) {
+        blobs = _blobs;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -35,7 +35,7 @@ contract GobblerReserve is Owned {
         // This is quite inefficient, but that's fine, it's not a hot path.
         unchecked {
             for (uint256 i = 0; i < ids.length; ++i) {
-                artGobblers.transferFrom(address(this), to, ids[i]);
+                blobs.transferFrom(address(this), to, ids[i]);
             }
         }
     }

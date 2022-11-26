@@ -6,7 +6,7 @@ import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {stdError} from "forge-std/Test.sol";
-import {ArtGobblers} from "../src/ArtGobblers.sol";
+import {Blobs} from "../src/Blobs.sol";
 import {Goo} from "../src/Goo.sol";
 import {GobblerReserve} from "../src/utils/GobblerReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
@@ -25,7 +25,7 @@ contract RandProviderTest is DSTestPlus {
     Utilities internal utils;
     address payable[] internal users;
 
-    ArtGobblers internal gobblers;
+    Blobs internal gobblers;
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
@@ -54,10 +54,10 @@ contract RandProviderTest is DSTestPlus {
         //gobblers contract will be deployed after 4 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 4);
 
-        team = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
-        community = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
+        team = new GobblerReserve(Blobs(gobblerAddress), address(this));
+        community = new GobblerReserve(Blobs(gobblerAddress), address(this));
         randProvider = new ChainlinkV1RandProvider(
-            ArtGobblers(gobblerAddress),
+            Blobs(gobblerAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
@@ -71,7 +71,7 @@ contract RandProviderTest is DSTestPlus {
             address(0xDEAD)
         );
 
-        gobblers = new ArtGobblers(
+        gobblers = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
@@ -121,7 +121,7 @@ contract RandProviderTest is DSTestPlus {
     }
 
     function testRandomnessIsOnlyUpgradableByOwner() public {
-        RandProvider newProvider = new ChainlinkV1RandProvider(ArtGobblers(address(0)), address(0), address(0), 0, 0);
+        RandProvider newProvider = new ChainlinkV1RandProvider(Blobs(address(0)), address(0), address(0), 0, 0);
         vm.expectRevert("UNAUTHORIZED");
         vm.prank(address(0xBEEFBABE));
         gobblers.upgradeRandProvider(newProvider);
@@ -131,8 +131,8 @@ contract RandProviderTest is DSTestPlus {
         mintGobblerToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
         gobblers.requestRandomSeed();
-        RandProvider newProvider = new ChainlinkV1RandProvider(ArtGobblers(address(0)), address(0), address(0), 0, 0);
-        vm.expectRevert(ArtGobblers.SeedPending.selector);
+        RandProvider newProvider = new ChainlinkV1RandProvider(Blobs(address(0)), address(0), address(0), 0, 0);
+        vm.expectRevert(Blobs.SeedPending.selector);
         gobblers.upgradeRandProvider(newProvider);
     }
 
@@ -142,7 +142,7 @@ contract RandProviderTest is DSTestPlus {
         //initial address is correct
         assertEq(address(gobblers.randProvider()), address(randProvider));
 
-        RandProvider newProvider = new ChainlinkV1RandProvider(ArtGobblers(address(0)), address(0), address(0), 0, 0);
+        RandProvider newProvider = new ChainlinkV1RandProvider(Blobs(address(0)), address(0), address(0), 0, 0);
         gobblers.upgradeRandProvider(newProvider);
         //final address is correct
         assertEq(address(gobblers.randProvider()), address(newProvider));

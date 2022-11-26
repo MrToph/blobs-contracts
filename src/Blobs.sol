@@ -27,7 +27,7 @@ import {Goo} from "./Goo.sol";
 /// @author FrankieIsLost <frankie@paradigm.xyz>
 /// @author transmissions11 <t11s@paradigm.xyz>
 /// @notice An experimental decentralized art factory by Justin Roiland and Paradigm.
-contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiver {
+contract Blobs is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiver {
     using LibString for uint256;
     using FixedPointMathLib for uint256;
 

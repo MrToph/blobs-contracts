@@ -7,8 +7,8 @@ contract MockGooCalculator {
     using FixedPointMathLib for uint256;
 
     /// @notice Compute goo balance based on emission multiple, last balance, and days elapsed.
-    /// @dev Must be kept up to date with the gooBalance function's corresponding emission balance calculations in ArtGobblers.sol.
-    /// @dev Forked from https://github.com/artgobblers/art-gobblers/blob/2f19bc901ed2f1bfedeb6f113b073bfc3585386a/src/ArtGobblers.sol#L693-L708
+    /// @dev Must be kept up to date with the gooBalance function's corresponding emission balance calculations in Blobs.sol.
+    /// @dev Forked from https://github.com/artgobblers/art-gobblers/blob/2f19bc901ed2f1bfedeb6f113b073bfc3585386a/src/Blobs.sol#L693-L708
     function computeGooBalance(uint256 emissionMultiple, uint256 lastBalanceWad, uint256 daysElapsedWad)
         public
         pure
