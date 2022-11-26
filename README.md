@@ -2,9 +2,9 @@
 
 #### TODO
 
+- [ ] decide on pending values: initial mint list, pricing, BASE_URI
 - [ ] add tests for `GobblerTreasury`
 - [ ] make `GobblerTreasury` upgradeable after timelock? by DAO?
-- [ ] decide on pending values: initial mint list, pricing
 - [ ] deployment scripts
 - [ ] ...
 
