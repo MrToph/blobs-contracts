@@ -1,11 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
+/**
+ * Base: https://github.com/artgobblers/art-gobblers/tree/a337353df07193225aad40e8d6659bd67b0abb20
+ * Modifications:
+ * - removed gobbler related fields from structures like emissionMultiples, balances, etc.
+ * - added `totalSupply` as it's required for NounsGovernance: https://github.com/nounsDAO/nouns-monorepo/blob/fe099f0df11e5e4de81cc0cd6a2186d3c82135ed/packages/nouns-contracts/contracts/governance/NounsDAOInterfaces.sol#L442
+ * - added `_beforeTokenTransfer` for ERC721Checkpointable to hook into
+ */
 import {ERC721TokenReceiver} from "solmate/tokens/ERC721.sol";
 
 /// @notice ERC721 implementation optimized for ArtGobblers by packing balanceOf/ownerOf with user/attribute data.
 /// @author Modified from Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
-abstract contract GobblersERC721 {
+abstract contract ERC721 {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -36,27 +43,13 @@ abstract contract GobblersERC721 {
         address owner;
         // Index of token after shuffle.
         uint64 idx;
-        // Multiple on goo issuance.
-        uint32 emissionMultiple;
     }
 
     /// @notice Maps gobbler ids to their data.
     mapping(uint256 => GobblerData) public getGobblerData;
-
-    /// @notice Struct holding data relevant to each user's account.
-    struct UserData {
-        // The total number of gobblers currently owned by the user.
-        uint32 gobblersOwned;
-        // The sum of the multiples of all gobblers the user holds.
-        uint32 emissionMultiple;
-        // User's goo balance at time of last checkpointing.
-        uint128 lastBalance;
-        // Timestamp of the last goo balance checkpoint.
-        uint64 lastTimestamp;
-    }
-
-    /// @notice Maps user addresses to their account data.
-    mapping(address => UserData) public getUserData;
+    // @notice Maps an address to number of gobblers owned
+    mapping(address => uint256) internal _balanceOf;
+    uint256 public totalSupply;
 
     function ownerOf(uint256 id) external view returns (address owner) {
         require((owner = getGobblerData[id].owner) != address(0), "NOT_MINTED");
@@ -65,7 +58,7 @@ abstract contract GobblersERC721 {
     function balanceOf(address owner) external view returns (uint256) {
         require(owner != address(0), "ZERO_ADDRESS");
 
-        return getUserData[owner].gobblersOwned;
+        return _balanceOf[owner];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -105,39 +98,28 @@ abstract contract GobblersERC721 {
         emit ApprovalForAll(msg.sender, operator, approved);
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public virtual;
+    function transferFrom(address from, address to, uint256 id) external {
+        _transferFrom(from, to, id);
+    }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) external {
-        transferFrom(from, to, id);
+    function safeTransferFrom(address from, address to, uint256 id) external {
+        _transferFrom(from, to, id);
 
         require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") ==
-                ERC721TokenReceiver.onERC721Received.selector,
+            to.code.length == 0
+                || ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "")
+                    == ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id,
-        bytes calldata data
-    ) external {
-        transferFrom(from, to, id);
+    function safeTransferFrom(address from, address to, uint256 id, bytes calldata data) external {
+        _transferFrom(from, to, id);
 
         require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) ==
-                ERC721TokenReceiver.onERC721Received.selector,
+            to.code.length == 0
+                || ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data)
+                    == ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
@@ -147,23 +129,47 @@ abstract contract GobblersERC721 {
     //////////////////////////////////////////////////////////////*/
 
     function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
-        return
-            interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
+        return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
+            || interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
+            || interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
     }
 
     /*//////////////////////////////////////////////////////////////
-                           INTERNAL MINT LOGIC
+                           INTERNAL MINT & TRANSFER LOGIC
     //////////////////////////////////////////////////////////////*/
+
+    function _transferFrom(address from, address to, uint256 id) internal {
+        require(from == getGobblerData[id].owner, "WRONG_FROM");
+
+        require(to != address(0), "INVALID_RECIPIENT");
+
+        require(
+            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id], "NOT_AUTHORIZED"
+        );
+
+        _beforeTokenTransfer(from, to, id);
+
+        delete getApproved[id];
+
+        getGobblerData[id].owner = to;
+
+        unchecked {
+            _balanceOf[from] -= 1;
+            _balanceOf[to] += 1;
+        }
+
+        emit Transfer(from, to, id);
+    }
 
     function _mint(address to, uint256 id) internal {
         // Does not check if the token was already minted or the recipient is address(0)
         // because ArtGobblers.sol manages its ids in such a way that it ensures it won't
         // double mint and will only mint to safe addresses or msg.sender who cannot be zero.
+        _beforeTokenTransfer(address(0), to, id);
 
         unchecked {
-            ++getUserData[to].gobblersOwned;
+            ++_balanceOf[to];
+            ++totalSupply;
         }
 
         getGobblerData[id].owner = to;
@@ -171,25 +177,33 @@ abstract contract GobblersERC721 {
         emit Transfer(address(0), to, id);
     }
 
-    function _batchMint(
-        address to,
-        uint256 amount,
-        uint256 lastMintedId
-    ) internal returns (uint256) {
+    function _batchMint(address to, uint256 amount, uint256 lastMintedId) internal returns (uint256) {
         // Doesn't check if the tokens were already minted or the recipient is address(0)
         // because ArtGobblers.sol manages its ids in such a way that it ensures it won't
         // double mint and will only mint to safe addresses or msg.sender who cannot be zero.
 
         unchecked {
-            getUserData[to].gobblersOwned += uint32(amount);
-
             for (uint256 i = 0; i < amount; ++i) {
-                getGobblerData[++lastMintedId].owner = to;
-
-                emit Transfer(address(0), to, lastMintedId);
+                _mint(to, ++lastMintedId);
             }
         }
 
         return lastMintedId;
     }
+
+    /**
+     * @dev Hook that is called before any token transfer. This includes minting
+     * and burning.
+     *
+     * Calling conditions:
+     *
+     * - When `from` and `to` are both non-zero, ``from``'s `tokenId` will be
+     * transferred to `to`.
+     * - When `from` is zero, `tokenId` will be minted for `to`.
+     * - When `to` is zero, ``from``'s `tokenId` will be burned.
+     * - `from` and `to` are never both zero.
+     *
+     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
+     */
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal virtual {}
 }

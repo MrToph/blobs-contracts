@@ -10,7 +10,6 @@ import {RandProvider} from "../../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../../src/utils/rand/ChainlinkV1RandProvider.sol";
 
 import {Goo} from "../../src/Goo.sol";
-import {Pages} from "../../src/Pages.sol";
 import {ArtGobblers} from "../../src/ArtGobblers.sol";
 
 abstract contract DeployBase is Script {
@@ -24,7 +23,6 @@ abstract contract DeployBase is Script {
     uint256 private immutable chainlinkFee;
     string private gobblerBaseUri;
     string private gobblerUnrevealedUri;
-    string private pagesBaseUri;
 
     // Deploy addresses.
     GobblerReserve public teamReserve;
@@ -32,7 +30,6 @@ abstract contract DeployBase is Script {
     Goo public goo;
     RandProvider public randProvider;
     ArtGobblers public artGobblers;
-    Pages public pages;
 
     constructor(
         address _teamColdWallet,
@@ -43,8 +40,7 @@ abstract contract DeployBase is Script {
         bytes32 _chainlinkKeyHash,
         uint256 _chainlinkFee,
         string memory _gobblerBaseUri,
-        string memory _gobblerUnrevealedUri,
-        string memory _pagesBaseUri
+        string memory _gobblerUnrevealedUri
     ) {
         teamColdWallet = _teamColdWallet;
         merkleRoot = _merkleRoot;
@@ -55,7 +51,6 @@ abstract contract DeployBase is Script {
         chainlinkFee = _chainlinkFee;
         gobblerBaseUri = _gobblerBaseUri;
         gobblerUnrevealedUri = _gobblerUnrevealedUri;
-        pagesBaseUri = _pagesBaseUri;
     }
 
     function run() external {
@@ -63,8 +58,7 @@ abstract contract DeployBase is Script {
 
         // Precomputed contract addresses, based on contract deploy nonces.
         // tx.origin is the address who will actually broadcast the contract creations below.
-        address gobblerAddress = LibRLP.computeAddress(tx.origin, vm.getNonce(tx.origin) + 4);
-        address pageAddress = LibRLP.computeAddress(tx.origin, vm.getNonce(tx.origin) + 5);
+        address gobblerAddress = LibRLP.computeAddress(tx.origin, vm.getNonce(tx.origin) + 3);
 
         // Deploy team and community reserves, owned by cold wallet.
         teamReserve = new GobblerReserve(ArtGobblers(gobblerAddress), teamColdWallet);
@@ -77,29 +71,20 @@ abstract contract DeployBase is Script {
             chainlinkFee
         );
 
-        // Deploy goo contract.
-        goo = new Goo(
-            // Gobblers contract address:
-            gobblerAddress,
-            // Pages contract address:
-            pageAddress
-        );
+        // Get goo contract.
+        goo = Goo(address(0xDEAD)); // TODO: get deployed Goo here
 
         // Deploy gobblers contract,
         artGobblers = new ArtGobblers(
             merkleRoot,
             mintStart,
             goo,
-            Pages(pageAddress),
             address(teamReserve),
             address(communityReserve),
             randProvider,
             gobblerBaseUri,
             gobblerUnrevealedUri
         );
-
-        // Deploy pages contract.
-        pages = new Pages(mintStart, goo, teamColdWallet, artGobblers, pagesBaseUri);
 
         vm.stopBroadcast();
     }

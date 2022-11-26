@@ -8,7 +8,6 @@ import {Vm} from "forge-std/Vm.sol";
 import {stdError} from "forge-std/Test.sol";
 import {ArtGobblers} from "../src/ArtGobblers.sol";
 import {Goo} from "../src/Goo.sol";
-import {Pages} from "../src/Pages.sol";
 import {GobblerReserve} from "../src/utils/GobblerReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
@@ -30,7 +29,6 @@ contract RandProviderTest is DSTestPlus {
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
-    Pages internal pages;
     GobblerReserve internal team;
     GobblerReserve internal community;
     RandProvider internal randProvider;
@@ -53,9 +51,8 @@ contract RandProviderTest is DSTestPlus {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 4 contract deploys, and pages after 5
+        //gobblers contract will be deployed after 4 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 4);
-        address pagesAddress = utils.predictContractAddress(address(this), 5);
 
         team = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
         community = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
@@ -71,14 +68,13 @@ contract RandProviderTest is DSTestPlus {
             // Gobblers:
             utils.predictContractAddress(address(this), 1),
             // Pages:
-            utils.predictContractAddress(address(this), 2)
+            address(0xDEAD)
         );
 
         gobblers = new ArtGobblers(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
-            Pages(pagesAddress),
             address(team),
             address(community),
             randProvider,
@@ -86,7 +82,11 @@ contract RandProviderTest is DSTestPlus {
             ""
         );
 
-        pages = new Pages(block.timestamp, goo, address(0xBEEF), gobblers, "");
+        // users approve contract
+        for (uint256 i = 0; i < users.length; ++i) {
+            vm.prank(users[i]);
+            goo.approve(address(gobblers), type(uint256).max);
+        }
     }
 
     function testRandomnessIsCorrectlyRequested() public {
@@ -103,7 +103,7 @@ contract RandProviderTest is DSTestPlus {
 
     function testRandomnessIsFulfilled() public {
         //initially, randomness should be 0
-        (uint64 randomSeed, , , , ) = gobblers.gobblerRevealsData();
+        (uint64 randomSeed,,,,) = gobblers.gobblerRevealsData();
         assertEq(randomSeed, 0);
         mintGobblerToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
@@ -111,7 +111,7 @@ contract RandProviderTest is DSTestPlus {
         uint256 randomness = uint256(keccak256(abi.encodePacked("seed")));
         vrfCoordinator.callBackWithRandomness(requestId, randomness, address(randProvider));
         //randomness from vrf should be set in gobblers contract
-        (randomSeed, , , , ) = gobblers.gobblerRevealsData();
+        (randomSeed,,,,) = gobblers.gobblerRevealsData();
         assertEq(randomSeed, uint64(randomness));
     }
 
@@ -160,7 +160,7 @@ contract RandProviderTest is DSTestPlus {
             vm.stopPrank();
 
             vm.prank(addr);
-            gobblers.mintFromGoo(type(uint256).max, false);
+            gobblers.mintFromGoo(type(uint256).max);
         }
     }
 }

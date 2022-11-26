@@ -51,7 +51,9 @@ contract ChainlinkV1RandProvider is RandProvider, VRFConsumerBase {
         address _linkToken,
         bytes32 _chainlinkKeyHash,
         uint256 _chainlinkFee
-    ) VRFConsumerBase(_vrfCoordinator, _linkToken) {
+    )
+        VRFConsumerBase(_vrfCoordinator, _linkToken)
+    {
         artGobblers = _artGobblers;
 
         chainlinkKeyHash = _chainlinkKeyHash;

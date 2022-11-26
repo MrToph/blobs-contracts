@@ -16,3 +16,6 @@
 [submodule "lib/VRGDAs"]
 	path = lib/VRGDAs
 	url = https://github.com/transmissions11/VRGDAs
+[submodule "lib/nouns-monorepo"]
+	path = lib/nouns-monorepo
+	url = https://github.com/nounsDAO/nouns-monorepo

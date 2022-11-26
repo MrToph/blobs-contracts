@@ -12,11 +12,10 @@ contract DeployRinkeby is DeployBase {
 
     string public constant gobblerBaseUri = "https://testnet.ag.xyz/api/nfts/gobblers/";
     string public constant gobblerUnrevealedUri = "https://testnet.ag.xyz/api/nfts/unrevealed";
-    string public constant pagesBaseUri = "https://testnet.ag.xyz/api/nfts/pages/";
 
     constructor()
+        // Team cold wallet:
         DeployBase(
-            // Team cold wallet:
             coldWallet,
             // Merkle root:
             keccak256(abi.encodePacked(root)),
@@ -33,9 +32,7 @@ contract DeployRinkeby is DeployBase {
             // Gobbler base URI:
             gobblerBaseUri,
             // Gobbler unrevealed URI:
-            gobblerUnrevealedUri,
-            // Pages base URI:
-            pagesBaseUri
+            gobblerUnrevealedUri
         )
     {}
 }
