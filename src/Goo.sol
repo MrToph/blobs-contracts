@@ -53,15 +53,15 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 /// @title Goo Token (GOO)
 /// @author FrankieIsLost <frankie@paradigm.xyz>
 /// @author transmissions11 <t11s@paradigm.xyz>
-/// @notice Goo is the in-game token for ArtGobblers. It's a standard ERC20
+/// @notice Goo is the in-game token for Blobs. It's a standard ERC20
 /// token that can be burned and minted by the gobblers and pages contract.
 contract Goo is ERC20("Goo", "GOO", 18) {
     /*//////////////////////////////////////////////////////////////
                                 ADDRESSES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The address of the Art Gobblers contract.
-    address public immutable artGobblers;
+    /// @notice The address of the Blobs contract.
+    address public immutable blobs;
 
     /// @notice The address of the Pages contract.
     address public immutable pages;
@@ -77,10 +77,10 @@ contract Goo is ERC20("Goo", "GOO", 18) {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Sets the addresses of relevant contracts.
-    /// @param _artGobblers Address of the ArtGobblers contract.
+    /// @param _blobs Address of the Blobs contract.
     /// @param _pages Address of the Pages contract.
-    constructor(address _artGobblers, address _pages) {
-        artGobblers = _artGobblers;
+    constructor(address _blobs, address _pages) {
+        blobs = _blobs;
         pages = _pages;
     }
 
@@ -95,17 +95,17 @@ contract Goo is ERC20("Goo", "GOO", 18) {
         _;
     }
 
-    /// @notice Mint any amount of goo to a user. Can only be called by ArtGobblers.
+    /// @notice Mint any amount of goo to a user. Can only be called by Blobs.
     /// @param to The address of the user to mint goo to.
     /// @param amount The amount of goo to mint.
-    function mintForGobblers(address to, uint256 amount) external only(artGobblers) {
+    function mintForBlobs(address to, uint256 amount) external only(blobs) {
         _mint(to, amount);
     }
 
-    /// @notice Burn any amount of goo from a user. Can only be called by ArtGobblers.
+    /// @notice Burn any amount of goo from a user. Can only be called by Blobs.
     /// @param from The address of the user to burn goo from.
     /// @param amount The amount of goo to burn.
-    function burnForGobblers(address from, uint256 amount) external only(artGobblers) {
+    function burnForBlobs(address from, uint256 amount) external only(blobs) {
         _burn(from, amount);
     }
 

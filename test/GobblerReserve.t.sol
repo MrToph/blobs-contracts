@@ -6,9 +6,9 @@ import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {stdError} from "forge-std/Test.sol";
-import {ArtGobblers} from "../src/ArtGobblers.sol";
+import {Blobs} from "../src/Blobs.sol";
 import {Goo} from "../src/Goo.sol";
-import {GobblerReserve} from "../src/utils/GobblerReserve.sol";
+import {BlobReserve} from "../src/utils/BlobReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
 import {LinkToken} from "./utils/mocks/LinkToken.sol";
@@ -16,8 +16,8 @@ import {VRFCoordinatorMock} from "chainlink/v0.8/mocks/VRFCoordinatorMock.sol";
 import {ERC721} from "solmate/tokens/ERC721.sol";
 import {LibString} from "solmate/utils/LibString.sol";
 
-/// @notice Unit test for the Gobbler Reserve contract.
-contract GobblerReserveTest is DSTestPlus {
+/// @notice Unit test for the Blob Reserve contract.
+contract BlobReserveTest is DSTestPlus {
     using LibString for uint256;
 
     Vm internal immutable vm = Vm(HEVM_ADDRESS);
@@ -25,12 +25,12 @@ contract GobblerReserveTest is DSTestPlus {
     Utilities internal utils;
     address payable[] internal users;
 
-    ArtGobblers internal gobblers;
+    Blobs internal blobs;
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
-    GobblerReserve internal team;
-    GobblerReserve internal community;
+    BlobReserve internal team;
+    BlobReserve internal community;
     RandProvider internal randProvider;
 
     bytes32 private keyHash;
@@ -48,13 +48,13 @@ contract GobblerReserveTest is DSTestPlus {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 4 contract deploys
-        address gobblerAddress = utils.predictContractAddress(address(this), 4);
+        //blobs contract will be deployed after 4 contract deploys
+        address blobAddress = utils.predictContractAddress(address(this), 4);
 
-        team = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
-        community = new GobblerReserve(ArtGobblers(gobblerAddress), address(this));
+        team = new BlobReserve(Blobs(blobAddress), address(this));
+        community = new BlobReserve(Blobs(blobAddress), address(this));
         randProvider = new ChainlinkV1RandProvider(
-            ArtGobblers(gobblerAddress),
+            Blobs(blobAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
@@ -62,13 +62,13 @@ contract GobblerReserveTest is DSTestPlus {
         );
 
         goo = new Goo(
-            // Gobblers:
+            // Blobs:
             utils.predictContractAddress(address(this), 1),
             // Pages:
             address(0xDEAD)
         );
 
-        gobblers = new ArtGobblers(
+        blobs = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
@@ -82,7 +82,7 @@ contract GobblerReserveTest is DSTestPlus {
         // users approve contract
         for (uint256 i = 0; i < users.length; ++i) {
             vm.prank(users[i]);
-            goo.approve(address(gobblers), type(uint256).max);
+            goo.approve(address(blobs), type(uint256).max);
         }
     }
 
@@ -92,12 +92,12 @@ contract GobblerReserveTest is DSTestPlus {
 
     /// @notice Tests that a reserve can be withdrawn from.
     function testCanWithdraw() public {
-        mintGobblerToAddress(users[0], 9);
+        mintBlobToAddress(users[0], 9);
 
-        gobblers.mintReservedGobblers(1);
+        blobs.mintReservedBlobs(1);
 
-        assertEq(gobblers.ownerOf(10), address(team));
-        assertEq(gobblers.ownerOf(11), address(community));
+        assertEq(blobs.ownerOf(10), address(team));
+        assertEq(blobs.ownerOf(11), address(community));
 
         uint256[] memory idsToWithdraw = new uint256[](1);
 
@@ -107,23 +107,23 @@ contract GobblerReserveTest is DSTestPlus {
         idsToWithdraw[0] = 11;
         community.withdraw(address(this), idsToWithdraw);
 
-        assertEq(gobblers.ownerOf(10), address(this));
-        assertEq(gobblers.ownerOf(11), address(this));
+        assertEq(blobs.ownerOf(10), address(this));
+        assertEq(blobs.ownerOf(11), address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
                                  HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Mint a number of gobblers to the given address
-    function mintGobblerToAddress(address addr, uint256 num) internal {
+    /// @notice Mint a number of blobs to the given address
+    function mintBlobToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
-            vm.startPrank(address(gobblers));
-            goo.mintForGobblers(addr, gobblers.gobblerPrice());
+            vm.startPrank(address(blobs));
+            goo.mintForBlobs(addr, blobs.blobPrice());
             vm.stopPrank();
 
             vm.prank(addr);
-            gobblers.mintFromGoo(type(uint256).max);
+            blobs.mintFromGoo(type(uint256).max);
         }
     }
 }

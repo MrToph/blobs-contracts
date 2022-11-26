@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 
 /**
- * Base: https://github.com/artgobblers/art-gobblers/tree/a337353df07193225aad40e8d6659bd67b0abb20
+ * Base: https://github.com/artgobblers/art-blobs/tree/a337353df07193225aad40e8d6659bd67b0abb20
  * Modifications:
  * - removed gobbler related fields from structures like emissionMultiples, balances, etc.
  * - added `totalSupply` as it's required for NounsGovernance: https://github.com/nounsDAO/nouns-monorepo/blob/fe099f0df11e5e4de81cc0cd6a2186d3c82135ed/packages/nouns-contracts/contracts/governance/NounsDAOInterfaces.sol#L442
@@ -10,7 +10,7 @@ pragma solidity >=0.8.0;
  */
 import {ERC721TokenReceiver} from "solmate/tokens/ERC721.sol";
 
-/// @notice ERC721 implementation optimized for ArtGobblers by packing balanceOf/ownerOf with user/attribute data.
+/// @notice ERC721 implementation optimized for Blobs by packing balanceOf/ownerOf with user/attribute data.
 /// @author Modified from Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
 abstract contract ERC721 {
     /*//////////////////////////////////////////////////////////////
@@ -34,25 +34,25 @@ abstract contract ERC721 {
     function tokenURI(uint256 id) external view virtual returns (string memory);
 
     /*//////////////////////////////////////////////////////////////
-                         GOBBLERS/ERC721 STORAGE
+                         BLOBS/ERC721 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Struct holding gobbler data.
-    struct GobblerData {
-        // The current owner of the gobbler.
+    /// @notice Struct holding blob data.
+    struct BlobData {
+        // The current owner of the blob.
         address owner;
         // Index of token after shuffle.
         uint64 idx;
     }
 
-    /// @notice Maps gobbler ids to their data.
-    mapping(uint256 => GobblerData) public getGobblerData;
-    // @notice Maps an address to number of gobblers owned
+    /// @notice Maps blob ids to their data.
+    mapping(uint256 => BlobData) public getBlobData;
+    // @notice Maps an address to number of blobs owned
     mapping(address => uint256) internal _balanceOf;
     uint256 public totalSupply;
 
     function ownerOf(uint256 id) external view returns (address owner) {
-        require((owner = getGobblerData[id].owner) != address(0), "NOT_MINTED");
+        require((owner = getBlobData[id].owner) != address(0), "NOT_MINTED");
     }
 
     function balanceOf(address owner) external view returns (uint256) {
@@ -83,7 +83,7 @@ abstract contract ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     function approve(address spender, uint256 id) external {
-        address owner = getGobblerData[id].owner;
+        address owner = getBlobData[id].owner;
 
         require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
 
@@ -139,7 +139,7 @@ abstract contract ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     function _transferFrom(address from, address to, uint256 id) internal {
-        require(from == getGobblerData[id].owner, "WRONG_FROM");
+        require(from == getBlobData[id].owner, "WRONG_FROM");
 
         require(to != address(0), "INVALID_RECIPIENT");
 
@@ -151,7 +151,7 @@ abstract contract ERC721 {
 
         delete getApproved[id];
 
-        getGobblerData[id].owner = to;
+        getBlobData[id].owner = to;
 
         unchecked {
             _balanceOf[from] -= 1;
@@ -163,7 +163,7 @@ abstract contract ERC721 {
 
     function _mint(address to, uint256 id) internal {
         // Does not check if the token was already minted or the recipient is address(0)
-        // because ArtGobblers.sol manages its ids in such a way that it ensures it won't
+        // because Blobs.sol manages its ids in such a way that it ensures it won't
         // double mint and will only mint to safe addresses or msg.sender who cannot be zero.
         _beforeTokenTransfer(address(0), to, id);
 
@@ -172,14 +172,14 @@ abstract contract ERC721 {
             ++totalSupply;
         }
 
-        getGobblerData[id].owner = to;
+        getBlobData[id].owner = to;
 
         emit Transfer(address(0), to, id);
     }
 
     function _batchMint(address to, uint256 amount, uint256 lastMintedId) internal returns (uint256) {
         // Doesn't check if the tokens were already minted or the recipient is address(0)
-        // because ArtGobblers.sol manages its ids in such a way that it ensures it won't
+        // because Blobs.sol manages its ids in such a way that it ensures it won't
         // double mint and will only mint to safe addresses or msg.sender who cannot be zero.
 
         unchecked {

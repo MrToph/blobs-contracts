@@ -23,11 +23,9 @@ import {ERC721Checkpointable} from "./utils/token/ERC721Checkpointable.sol";
 
 import {Goo} from "./Goo.sol";
 
-/// @title Art Gobblers NFT
-/// @author FrankieIsLost <frankie@paradigm.xyz>
-/// @author transmissions11 <t11s@paradigm.xyz>
-/// @notice An experimental decentralized art factory by Justin Roiland and Paradigm.
-contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiver {
+/// @title Blobs NFT
+/// @notice An experimental decentralized art companion project to ArtBlobs
+contract Blobs is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiver {
     using LibString for uint256;
     using FixedPointMathLib for uint256;
 
@@ -38,10 +36,10 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
     /// @notice The address of the Goo ERC20 token contract.
     Goo public immutable goo;
 
-    /// @notice The address which receives gobblers reserved for the team.
+    /// @notice The address which receives blobs reserved for the team.
     address public immutable team;
 
-    /// @notice The address which receives gobblers reserved for the community.
+    /// @notice The address which receives blobs reserved for the community.
     address public immutable community;
 
     /// @notice The address of a randomness provider. This provider will initially be
@@ -52,17 +50,17 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
                             SUPPLY CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Maximum number of mintable gobblers.
+    /// @notice Maximum number of mintable blobs.
     uint256 public constant MAX_SUPPLY = 10000;
 
-    /// @notice Maximum amount of gobblers mintable via mintlist.
+    /// @notice Maximum amount of blobs mintable via mintlist.
     uint256 public constant MINTLIST_SUPPLY = 2000;
 
-    /// @notice Maximum amount of gobblers split between the reserves.
-    /// @dev Set to comprise 20% of the sum of goo mintable gobblers + reserved gobblers.
+    /// @notice Maximum amount of blobs split between the reserves.
+    /// @dev Set to comprise 20% of the sum of goo mintable blobs + reserved blobs.
     uint256 public constant RESERVED_SUPPLY = (MAX_SUPPLY - MINTLIST_SUPPLY) / 5;
 
-    /// @notice Maximum amount of gobblers that can be minted via VRGDA.
+    /// @notice Maximum amount of blobs that can be minted via VRGDA.
     // prettier-ignore
     uint256 public constant MAX_MINTABLE = MAX_SUPPLY - MINTLIST_SUPPLY - RESERVED_SUPPLY;
 
@@ -70,10 +68,10 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
                            METADATA CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice URI for gobblers that have yet to be revealed.
+    /// @notice URI for blobs that have yet to be revealed.
     string public UNREVEALED_URI;
 
-    /// @notice Base URI for minted gobblers.
+    /// @notice Base URI for minted blobs.
     string public BASE_URI;
 
     /*//////////////////////////////////////////////////////////////
@@ -84,7 +82,7 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
     bytes32 public immutable merkleRoot;
 
     /// @notice Mapping to keep track of which addresses have claimed from mintlist.
-    mapping(address => bool) public hasClaimedMintlistGobbler;
+    mapping(address => bool) public hasClaimedMintlistBlob;
 
     /*//////////////////////////////////////////////////////////////
                             VRGDA INPUT STATE
@@ -93,40 +91,40 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
     /// @notice Timestamp for the start of minting.
     uint256 public immutable mintStart;
 
-    /// @notice Number of gobblers minted from goo.
+    /// @notice Number of blobs minted from goo.
     uint128 public numMintedFromGoo;
 
     /*//////////////////////////////////////////////////////////////
-                         STANDARD GOBBLER STATE
+                         STANDARD BLOB STATE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Id of the most recently minted gobbler.
-    /// @dev Will be 0 if no gobblers have been minted yet.
+    /// @notice Id of the most recently minted blob.
+    /// @dev Will be 0 if no blobs have been minted yet.
     uint128 public lastUsedId;
 
-    /// @notice The number of gobblers minted to the reserves.
+    /// @notice The number of blobs minted to the reserves.
     uint256 public numMintedForReserves;
 
     /*//////////////////////////////////////////////////////////////
-                          GOBBLER REVEAL STATE
+                          BLOB REVEAL STATE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Struct holding data required for gobbler reveals.
-    struct GobblerRevealsData {
+    /// @notice Struct holding data required for blob reveals.
+    struct BlobRevealsData {
         // Last randomness obtained from the rand provider.
         uint64 randomSeed;
         // Next reveal cannot happen before this timestamp.
         uint64 nextRevealTimestamp;
-        // Id of latest gobbler which has been revealed so far.
+        // Id of latest blob which has been revealed so far.
         uint64 lastRevealedId;
-        // Remaining gobblers to be revealed with the current seed.
+        // Remaining blobs to be revealed with the current seed.
         uint56 toBeRevealed;
         // Whether we are waiting to receive a seed from Chainlink.
         bool waitingForSeed;
     }
 
-    /// @notice Data about the current state of gobbler reveals.
-    GobblerRevealsData public gobblerRevealsData;
+    /// @notice Data about the current state of blob reveals.
+    BlobRevealsData public blobRevealsData;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -134,15 +132,15 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
 
     event GooBalanceUpdated(address indexed user, uint256 newGooBalance);
 
-    event GobblerClaimed(address indexed user, uint256 indexed gobblerId);
-    event GobblerPurchased(address indexed user, uint256 indexed gobblerId, uint256 price);
-    event ReservedGobblersMinted(address indexed user, uint256 lastMintedGobblerId, uint256 numGobblersEach);
+    event BlobClaimed(address indexed user, uint256 indexed blobId);
+    event BlobPurchased(address indexed user, uint256 indexed blobId, uint256 price);
+    event ReservedBlobsMinted(address indexed user, uint256 lastMintedBlobId, uint256 numBlobsEach);
 
     event RandomnessFulfilled(uint256 randomness);
     event RandomnessRequested(address indexed user, uint256 toBeRevealed);
     event RandProviderUpgraded(address indexed user, RandProvider indexed newRandProvider);
 
-    event GobblersRevealed(address indexed user, uint256 numGobblers, uint256 lastRevealedId);
+    event BlobsRevealed(address indexed user, uint256 numBlobs, uint256 lastRevealedId);
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -175,8 +173,8 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
     /// @param _team Address of the team reserve.
     /// @param _community Address of the community reserve.
     /// @param _randProvider Address of the randomness provider.
-    /// @param _baseUri Base URI for revealed gobblers.
-    /// @param _unrevealedUri URI for unrevealed gobblers.
+    /// @param _baseUri Base URI for revealed blobs.
+    /// @param _unrevealedUri URI for unrevealed blobs.
     constructor(
         // Mint config:
         bytes32 _merkleRoot,
@@ -195,7 +193,7 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
         LogisticVRGDA(
             69.42e18, // Target price.
             0.31e18, // Price decay percent.
-            // Max gobblers mintable via VRGDA.
+            // Max blobs mintable via VRGDA.
             toWadUnsafe(MAX_MINTABLE),
             0.0023e18 // Time scale.
         )
@@ -212,7 +210,7 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
         UNREVEALED_URI = _unrevealedUri;
 
         // Reveal for initial mint must wait a day from the start of the mint.
-        gobblerRevealsData.nextRevealTimestamp = uint64(_mintStart + 1 days);
+        blobRevealsData.nextRevealTimestamp = uint64(_mintStart + 1 days);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -223,61 +221,61 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
     /// @dev Function does not directly enforce the MINTLIST_SUPPLY limit for gas efficiency. The
     /// limit is enforced during the creation of the merkle proof, which will be shared publicly.
     /// @param proof Merkle proof to verify the sender is mintlisted.
-    /// @return gobblerId The id of the gobbler that was claimed.
-    function claimGobbler(bytes32[] calldata proof) external returns (uint256 gobblerId) {
+    /// @return blobId The id of the blob that was claimed.
+    function claimBlob(bytes32[] calldata proof) external returns (uint256 blobId) {
         // If minting has not yet begun, revert.
         if (mintStart > block.timestamp) revert MintStartPending();
 
         // If the user has already claimed, revert.
-        if (hasClaimedMintlistGobbler[msg.sender]) revert AlreadyClaimed();
+        if (hasClaimedMintlistBlob[msg.sender]) revert AlreadyClaimed();
 
         // If the user's proof is invalid, revert.
         if (!MerkleProofLib.verify(proof, merkleRoot, keccak256(abi.encodePacked(msg.sender)))) revert InvalidProof();
 
-        hasClaimedMintlistGobbler[msg.sender] = true;
+        hasClaimedMintlistBlob[msg.sender] = true;
 
         unchecked {
             // Overflow should be impossible due to supply cap of 10,000.
-            emit GobblerClaimed(msg.sender, gobblerId = ++lastUsedId);
+            emit BlobClaimed(msg.sender, blobId = ++lastUsedId);
         }
 
-        _mint(msg.sender, gobblerId);
+        _mint(msg.sender, blobId);
     }
 
     /*//////////////////////////////////////////////////////////////
                               MINTING LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Mint a gobbler, paying with goo.
-    /// @param maxPrice Maximum price to pay to mint the gobbler.
-    /// @return gobblerId The id of the gobbler that was minted.
-    function mintFromGoo(uint256 maxPrice) external returns (uint256 gobblerId) {
+    /// @notice Mint a blob, paying with goo.
+    /// @param maxPrice Maximum price to pay to mint the blob.
+    /// @return blobId The id of the blob that was minted.
+    function mintFromGoo(uint256 maxPrice) external returns (uint256 blobId) {
         // No need to check if we're at MAX_MINTABLE,
-        // gobblerPrice() will revert once we reach it due to its
+        // blobPrice() will revert once we reach it due to its
         // logistic nature. It will also revert prior to the mint start.
-        uint256 currentPrice = gobblerPrice();
+        uint256 currentPrice = blobPrice();
 
         // If the current price is above the user's specified max, revert.
         if (currentPrice > maxPrice) revert PriceExceededMax(currentPrice);
 
         // Decrement the user's goo balance by the current price
-        // TODO: check if team is the correct recipient. same address that receives the team gobblers?
+        // TODO: check if team is the correct recipient. same address that receives the team blobs?
         goo.transferFrom(msg.sender, address(team), currentPrice);
 
         unchecked {
             ++numMintedFromGoo; // Overflow should be impossible due to the supply cap.
 
-            emit GobblerPurchased(msg.sender, gobblerId = ++lastUsedId, currentPrice);
+            emit BlobPurchased(msg.sender, blobId = ++lastUsedId, currentPrice);
         }
 
-        _mint(msg.sender, gobblerId);
+        _mint(msg.sender, blobId);
     }
 
-    /// @notice Gobbler pricing in terms of goo.
+    /// @notice Blob pricing in terms of goo.
     /// @dev Will revert if called before minting starts
-    /// or after all gobblers have been minted via VRGDA.
-    /// @return Current price of a gobbler in terms of goo.
-    function gobblerPrice() public view returns (uint256) {
+    /// or after all blobs have been minted via VRGDA.
+    /// @return Current price of a blob in terms of goo.
+    function blobPrice() public view returns (uint256) {
         // We need checked math here to cause underflow
         // before minting has begun, preventing mints.
         uint256 timeSinceStart = block.timestamp - mintStart;
@@ -289,35 +287,35 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
                             RANDOMNESS LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Request a new random seed for revealing gobblers.
+    /// @notice Request a new random seed for revealing blobs.
     /// @dev Can only be called every 24 hours at the earliest.
     function requestRandomSeed() external returns (bytes32) {
-        uint256 nextRevealTimestamp = gobblerRevealsData.nextRevealTimestamp;
+        uint256 nextRevealTimestamp = blobRevealsData.nextRevealTimestamp;
 
         // A new random seed cannot be requested before the next reveal timestamp.
         if (block.timestamp < nextRevealTimestamp) revert RequestTooEarly();
 
-        // A random seed can only be requested when all gobblers from the previous seed have been revealed.
+        // A random seed can only be requested when all blobs from the previous seed have been revealed.
         // This prevents a user from requesting additional randomness in hopes of a more favorable outcome.
-        if (gobblerRevealsData.toBeRevealed != 0) revert RevealsPending();
+        if (blobRevealsData.toBeRevealed != 0) revert RevealsPending();
 
         unchecked {
             // Prevent revealing while we wait for the seed.
-            gobblerRevealsData.waitingForSeed = true;
+            blobRevealsData.waitingForSeed = true;
 
-            // Compute the number of gobblers to be revealed with the seed.
-            uint256 toBeRevealed = lastUsedId - gobblerRevealsData.lastRevealedId;
+            // Compute the number of blobs to be revealed with the seed.
+            uint256 toBeRevealed = lastUsedId - blobRevealsData.lastRevealedId;
 
-            // Ensure that there are more than 0 gobblers to be revealed,
+            // Ensure that there are more than 0 blobs to be revealed,
             // otherwise the contract could waste LINK revealing nothing.
             if (toBeRevealed == 0) revert ZeroToBeRevealed();
 
-            // Lock in the number of gobblers to be revealed from seed.
-            gobblerRevealsData.toBeRevealed = uint56(toBeRevealed);
+            // Lock in the number of blobs to be revealed from seed.
+            blobRevealsData.toBeRevealed = uint56(toBeRevealed);
 
             // We want at most one batch of reveals every 24 hours.
             // Timestamp overflow is impossible on human timescales.
-            gobblerRevealsData.nextRevealTimestamp = uint64(nextRevealTimestamp + 1 days);
+            blobRevealsData.nextRevealTimestamp = uint64(nextRevealTimestamp + 1 days);
 
             emit RandomnessRequested(msg.sender, toBeRevealed);
         }
@@ -333,9 +331,9 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
         if (msg.sender != address(randProvider)) revert NotRandProvider();
 
         // The unchecked cast to uint64 is equivalent to moduloing the randomness by 2**64.
-        gobblerRevealsData.randomSeed = uint64(randomness); // 64 bits of randomness is plenty.
+        blobRevealsData.randomSeed = uint64(randomness); // 64 bits of randomness is plenty.
 
-        gobblerRevealsData.waitingForSeed = false; // We have the seed now, open up reveals.
+        blobRevealsData.waitingForSeed = false; // We have the seed now, open up reveals.
 
         emit RandomnessFulfilled(randomness);
     }
@@ -344,7 +342,7 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
     /// @param newRandProvider The new randomness provider contract address.
     function upgradeRandProvider(RandProvider newRandProvider) external onlyOwner {
         // Revert if waiting for seed, so we don't interrupt requests in flight.
-        if (gobblerRevealsData.waitingForSeed) revert SeedPending();
+        if (blobRevealsData.waitingForSeed) revert SeedPending();
 
         randProvider = newRandProvider; // Update the randomness provider.
 
@@ -352,29 +350,29 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
     }
 
     /*//////////////////////////////////////////////////////////////
-                          GOBBLER REVEAL LOGIC
+                          BLOB REVEAL LOGIC
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Knuth shuffle to progressively reveal
-    /// new gobblers using entropy from a random seed.
-    /// @param numGobblers The number of gobblers to reveal.
-    function revealGobblers(uint256 numGobblers) external {
-        uint256 randomSeed = gobblerRevealsData.randomSeed;
+    /// new blobs using entropy from a random seed.
+    /// @param numBlobs The number of blobs to reveal.
+    function revealBlobs(uint256 numBlobs) external {
+        uint256 randomSeed = blobRevealsData.randomSeed;
 
-        uint256 lastRevealedId = gobblerRevealsData.lastRevealedId;
+        uint256 lastRevealedId = blobRevealsData.lastRevealedId;
 
-        uint256 totalRemainingToBeRevealed = gobblerRevealsData.toBeRevealed;
+        uint256 totalRemainingToBeRevealed = blobRevealsData.toBeRevealed;
 
         // Can't reveal if we're still waiting for a new seed.
-        if (gobblerRevealsData.waitingForSeed) revert SeedPending();
+        if (blobRevealsData.waitingForSeed) revert SeedPending();
 
-        // Can't reveal more gobblers than are currently remaining to be revealed with the seed.
-        if (numGobblers > totalRemainingToBeRevealed) revert NotEnoughRemainingToBeRevealed(totalRemainingToBeRevealed);
+        // Can't reveal more blobs than are currently remaining to be revealed with the seed.
+        if (numBlobs > totalRemainingToBeRevealed) revert NotEnoughRemainingToBeRevealed(totalRemainingToBeRevealed);
 
         // Implements a Knuth shuffle. If something in
         // here can overflow, we've got bigger problems.
         unchecked {
-            for (uint256 i = 0; i < numGobblers; ++i) {
+            for (uint256 i = 0; i < numBlobs; ++i) {
                 /*//////////////////////////////////////////////////////////////
                                       DETERMINE RANDOM SWAP
                 //////////////////////////////////////////////////////////////*/
@@ -397,24 +395,24 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
 
                 // Get the index of the swap id.
                 uint64 swapIndex =
-                    getGobblerData[swapId].idx == 0
+                    getBlobData[swapId].idx == 0
                     ? uint64(swapId) // Hasn't been shuffled before.
-                    : getGobblerData[swapId].idx; // Shuffled before.
+                    : getBlobData[swapId].idx; // Shuffled before.
 
                 // Get the index of the current id.
                 uint64 currentIndex =
-                    getGobblerData[currentId].idx == 0
+                    getBlobData[currentId].idx == 0
                     ? uint64(currentId) // Hasn't been shuffled before.
-                    : getGobblerData[currentId].idx; // Shuffled before.
+                    : getBlobData[currentId].idx; // Shuffled before.
 
                 /*//////////////////////////////////////////////////////////////
                                         SWAP INDICES
                 //////////////////////////////////////////////////////////////*/
 
                 // Swap the index and multiple of the current id.
-                getGobblerData[currentId].idx = swapIndex;
+                getBlobData[currentId].idx = swapIndex;
                 // Swap the index of the swap id.
-                getGobblerData[swapId].idx = currentIndex;
+                getBlobData[swapId].idx = currentIndex;
 
                 /*//////////////////////////////////////////////////////////////
                                        UPDATE RANDOMNESS
@@ -422,8 +420,8 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
 
                 // Update the random seed to choose a new distance for the next iteration.
                 // It is critical that we cast to uint64 here, as otherwise the random seed
-                // set after calling revealGobblers(1) thrice would differ from the seed set
-                // after calling revealGobblers(3) a single time. This would enable an attacker
+                // set after calling revealBlobs(1) thrice would differ from the seed set
+                // after calling revealBlobssingle time. This would enable an attacker
                 // to choose from a number of different seeds and use whichever is most favorable.
                 // Equivalent to randomSeed = uint64(uint256(keccak256(abi.encodePacked(randomSeed))))
                 assembly {
@@ -435,11 +433,11 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
             }
 
             // Update all relevant reveal state.
-            gobblerRevealsData.randomSeed = uint64(randomSeed);
-            gobblerRevealsData.lastRevealedId = uint64(lastRevealedId);
-            gobblerRevealsData.toBeRevealed = uint56(totalRemainingToBeRevealed - numGobblers);
+            blobRevealsData.randomSeed = uint64(randomSeed);
+            blobRevealsData.lastRevealedId = uint64(lastRevealedId);
+            blobRevealsData.toBeRevealed = uint56(totalRemainingToBeRevealed - numBlobs);
 
-            emit GobblersRevealed(msg.sender, numGobblers, lastRevealedId);
+            emit BlobsRevealed(msg.sender, numBlobs, lastRevealedId);
         }
     }
 
@@ -448,48 +446,48 @@ contract ArtGobblers is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155Token
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns a token's URI if it has been minted.
-    /// @param gobblerId The id of the token to get the URI for.
-    function tokenURI(uint256 gobblerId) public view virtual override returns (string memory) {
-        // Between 0 and lastRevealed are revealed normal gobblers.
-        if (gobblerId <= gobblerRevealsData.lastRevealedId) {
-            if (gobblerId == 0) revert("NOT_MINTED"); // 0 is not a valid id for Art Gobblers.
+    /// @param blobId The id of the token to get the URI for.
+    function tokenURI(uint256 blobId) public view virtual override returns (string memory) {
+        // Between 0 and lastRevealed are revealed normal blobs.
+        if (blobId <= blobRevealsData.lastRevealedId) {
+            if (blobId == 0) revert("NOT_MINTED"); // 0 is not a valid id for blob.
 
-            return string.concat(BASE_URI, uint256(getGobblerData[gobblerId].idx).toString());
+            return string.concat(BASE_URI, uint256(getBlobData[blobId].idx).toString());
         }
 
         // Between lastRevealed + 1 and lastUsedId are minted but not revealed.
-        if (gobblerId <= lastUsedId) return UNREVEALED_URI;
+        if (blobId <= lastUsedId) return UNREVEALED_URI;
 
         // Between lastUsedId and MAX_SUPPLY are unminted.
         revert("NOT_MINTED");
     }
 
     /*//////////////////////////////////////////////////////////////
-                     RESERVED GOBBLERS MINTING LOGIC
+                     RESERVED BLOBS MINTING LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Mint a number of gobblers to the reserves.
-    /// @param numGobblersEach The number of gobblers to mint to each reserve.
-    /// @dev Gobblers minted to reserves cannot comprise more than 20% of the sum of
-    /// the supply of goo minted gobblers and the supply of gobblers minted to reserves.
-    function mintReservedGobblers(uint256 numGobblersEach) external returns (uint256 lastMintedGobblerId) {
+    /// @notice Mint a number of blobs to the reserves.
+    /// @param numBlobsEach The number of blobs to mint to each reserve.
+    /// @dev Blobs minted to reserves cannot comprise more than 20% of the sum of
+    /// the supply of goo minted blobs and the supply of blobs minted to reserves.
+    function mintReservedBlobs(uint256 numBlobsEach) external returns (uint256 lastMintedBlobId) {
         unchecked {
             // Optimistically increment numMintedForReserves, may be reverted below.
-            // Overflow in this calculation is possible but numGobblersEach would have to
+            // Overflow in this calculation is possible but numBlobsEach would have to
             // be so large that it would cause the loop in _batchMint to run out of gas quickly.
-            uint256 newNumMintedForReserves = numMintedForReserves += (numGobblersEach * 2);
+            uint256 newNumMintedForReserves = numMintedForReserves += (numBlobsEach * 2);
 
-            // Ensure that after this mint gobblers minted to reserves won't comprise more than 20% of
-            // the sum of the supply of goo minted gobblers and the supply of gobblers minted to reserves.
+            // Ensure that after this mint blobs minted to reserves won't comprise more than 20% of
+            // the sum of the supply of goo minted blobs and the supply of blobs minted to reserves.
             if (newNumMintedForReserves > (numMintedFromGoo + newNumMintedForReserves) / 5) revert ReserveImbalance();
         }
 
-        // Mint numGobblersEach gobblers to both the team and community reserve.
-        lastMintedGobblerId = _batchMint(team, numGobblersEach, lastUsedId);
-        lastMintedGobblerId = _batchMint(community, numGobblersEach, lastMintedGobblerId);
+        // Mint numBlobsEach blobs to both the team and community reserve.
+        lastMintedBlobId = _batchMint(team, numBlobsEach, lastUsedId);
+        lastMintedBlobId = _batchMint(community, numBlobsEach, lastMintedBlobId);
 
-        lastUsedId = uint128(lastMintedGobblerId); // Set lastUsedId.
+        lastUsedId = uint128(lastMintedBlobId); // Set lastUsedId.
 
-        emit ReservedGobblersMinted(msg.sender, lastMintedGobblerId, numGobblersEach);
+        emit ReservedBlobsMinted(msg.sender, lastMintedBlobId, numBlobsEach);
     }
 }

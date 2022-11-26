@@ -5,7 +5,7 @@ import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {ArtGobblers} from "../src/ArtGobblers.sol";
+import {Blobs} from "../src/Blobs.sol";
 import {Goo} from "../src/Goo.sol";
 import {LinkToken} from "./utils/mocks/LinkToken.sol";
 import {VRFCoordinatorMock} from "chainlink/v0.8/mocks/VRFCoordinatorMock.sol";
@@ -21,7 +21,7 @@ contract VRGDAsTest is DSTestPlus {
     Utilities internal utils;
     address payable[] internal users;
 
-    ArtGobblers private gobblers;
+    Blobs private blobs;
     VRFCoordinatorMock private vrfCoordinator;
     LinkToken private linkToken;
 
@@ -37,20 +37,20 @@ contract VRGDAsTest is DSTestPlus {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 2 contract deploys
-        address gobblerAddress = utils.predictContractAddress(address(this), 2);
+        //blobs contract will be deployed after 2 contract deploys
+        address blobAddress = utils.predictContractAddress(address(this), 2);
 
         randProvider = new ChainlinkV1RandProvider(
-            ArtGobblers(gobblerAddress),
+            Blobs(blobAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
             fee
         );
 
-        goo = new Goo(gobblerAddress, address(0xDEAD));
+        goo = new Goo(blobAddress, address(0xDEAD));
 
-        gobblers = new ArtGobblers(
+        blobs = new Blobs(
             "root",
             block.timestamp,
             goo,
@@ -62,38 +62,38 @@ contract VRGDAsTest is DSTestPlus {
         );
     }
 
-    // function testFindGobblerOverflowPoint() public view {
+    // function testFindBlobOverflowPoint() public view {
     //     uint256 sold;
     //     while (true) {
-    //         gobblers.getPrice(0 days, sold++);
+    //         blobs.getPrice(0 days, sold++);
     //     }
     // }
 
-    function testNoOverflowForMostGobblers(uint256 timeSinceStart, uint256 sold) public {
-        gobblers.getVRGDAPrice(toDaysWadUnsafe(bound(timeSinceStart, 0 days, ONE_THOUSAND_YEARS)), bound(sold, 0, 1730));
+    function testNoOverflowForMostBlobs(uint256 timeSinceStart, uint256 sold) public {
+        blobs.getVRGDAPrice(toDaysWadUnsafe(bound(timeSinceStart, 0 days, ONE_THOUSAND_YEARS)), bound(sold, 0, 1730));
     }
 
-    function testNoOverflowForAllGobblers(uint256 timeSinceStart, uint256 sold) public {
-        gobblers.getVRGDAPrice(
+    function testNoOverflowForAllBlobs(uint256 timeSinceStart, uint256 sold) public {
+        blobs.getVRGDAPrice(
             toDaysWadUnsafe(bound(timeSinceStart, 3870 days, ONE_THOUSAND_YEARS)),
-            bound(sold, 0, gobblers.MAX_MINTABLE() - 1)
+            bound(sold, 0, blobs.MAX_MINTABLE() - 1)
         );
     }
 
-    function testFailOverflowForBeyondLimitGobblers(uint256 timeSinceStart, uint256 sold) public {
-        // ArtGobblers calls getVRGDAPrice(., numMintedFromGoo) where numMintedFromGoo < MAX_MINTABLE()
-        gobblers.getVRGDAPrice(
+    function testFailOverflowForBeyondLimitBlobs(uint256 timeSinceStart, uint256 sold) public {
+        // Blobs calls getVRGDAPrice(., numMintedFromGoo) where numMintedFromGoo < MAX_MINTABLE()
+        blobs.getVRGDAPrice(
             toDaysWadUnsafe(bound(timeSinceStart, 0 days, ONE_THOUSAND_YEARS)),
-            bound(sold, gobblers.MAX_MINTABLE(), type(uint128).max)
+            bound(sold, blobs.MAX_MINTABLE(), type(uint128).max)
         );
     }
 
-    function testGobblerPriceStrictlyIncreasesForMostGobblers() public {
+    function testBlobPriceStrictlyIncreasesForMostBlobs() public {
         uint256 sold;
         uint256 previousPrice;
 
         while (sold <= 1730) {
-            uint256 price = gobblers.getVRGDAPrice(0 days, sold++);
+            uint256 price = blobs.getVRGDAPrice(0 days, sold++);
             assertGt(price, previousPrice);
             previousPrice = price;
         }

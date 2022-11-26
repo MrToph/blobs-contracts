@@ -11,8 +11,8 @@ contract DeployGoerli is DeployBase {
     ///2022-09-22T01:22:45+00:00
     uint256 public immutable mintStart = 1663809768;
 
-    string public constant gobblerBaseUri = "https://testnet.ag.xyz/api/nfts/gobblers/";
-    string public constant gobblerUnrevealedUri = "https://testnet.ag.xyz/api/nfts/unrevealed";
+    string public constant blobBaseUri = "https://testnet.ag.xyz/api/nfts/blobs/";
+    string public constant blobUnrevealedUri = "https://testnet.ag.xyz/api/nfts/unrevealed";
 
     constructor()
         // Team cold wallet:
@@ -30,10 +30,10 @@ contract DeployGoerli is DeployBase {
             0x0476f9a745b61ea5c0ab224d3a6e4c99f0b02fce4da01143a4f70aa80ae76e8a,
             // Chainlink fee:
             0.1e18,
-            // Gobbler base URI:
-            gobblerBaseUri,
-            // Gobbler unrevealed URI:
-            gobblerUnrevealedUri
+            // Blob base URI:
+            blobBaseUri,
+            // Blob unrevealed URI:
+            blobUnrevealedUri
         )
     {}
 }

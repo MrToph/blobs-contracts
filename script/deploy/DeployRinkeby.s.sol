@@ -10,8 +10,8 @@ contract DeployRinkeby is DeployBase {
 
     uint256 public immutable mintStart = 1656369768;
 
-    string public constant gobblerBaseUri = "https://testnet.ag.xyz/api/nfts/gobblers/";
-    string public constant gobblerUnrevealedUri = "https://testnet.ag.xyz/api/nfts/unrevealed";
+    string public constant blobBaseUri = "https://testnet.ag.xyz/api/nfts/blobs/";
+    string public constant blobUnrevealedUri = "https://testnet.ag.xyz/api/nfts/unrevealed";
 
     constructor()
         // Team cold wallet:
@@ -29,10 +29,10 @@ contract DeployRinkeby is DeployBase {
             0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311,
             // Chainlink fee:
             0.1e18,
-            // Gobbler base URI:
-            gobblerBaseUri,
-            // Gobbler unrevealed URI:
-            gobblerUnrevealedUri
+            // Blob base URI:
+            blobBaseUri,
+            // Blob unrevealed URI:
+            blobUnrevealedUri
         )
     {}
 }

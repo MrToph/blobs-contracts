@@ -5,7 +5,7 @@ import {DSTest} from "ds-test/test.sol";
 import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {ArtGobblers} from "../src/ArtGobblers.sol";
+import {Blobs} from "../src/Blobs.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
 import {Goo} from "../src/Goo.sol";
@@ -18,7 +18,7 @@ contract BenchmarksTest is DSTest {
     Utilities internal utils;
     address payable[] internal users;
 
-    ArtGobblers private gobblers;
+    Blobs private blobs;
     VRFCoordinatorMock private vrfCoordinator;
     LinkToken private linkToken;
     RandProvider private randProvider;
@@ -35,20 +35,20 @@ contract BenchmarksTest is DSTest {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 2 contract deploys
-        address gobblerAddress = utils.predictContractAddress(address(this), 2);
+        //blobs contract will be deployed after 2 contract deploys
+        address blobAddress = utils.predictContractAddress(address(this), 2);
 
         randProvider = new ChainlinkV1RandProvider(
-            ArtGobblers(gobblerAddress),
+            Blobs(blobAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
             fee
         );
 
-        goo = new Goo(gobblerAddress, address(0xDEAD));
+        goo = new Goo(blobAddress, address(0xDEAD));
 
-        gobblers = new ArtGobblers(
+        blobs = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
@@ -59,48 +59,48 @@ contract BenchmarksTest is DSTest {
             ""
         );
 
-        vm.prank(address(gobblers));
-        goo.mintForGobblers(address(this), type(uint192).max);
+        vm.prank(address(blobs));
+        goo.mintForBlobs(address(this), type(uint192).max);
 
         // approve contract
-        goo.approve(address(gobblers), type(uint256).max);
-        mintGobblerToAddress(address(this), 1000);
+        goo.approve(address(blobs), type(uint256).max);
+        mintBlobToAddress(address(this), 1000);
 
         vm.warp(block.timestamp + 30 days);
 
-        bytes32 requestId = gobblers.requestRandomSeed();
+        bytes32 requestId = blobs.requestRandomSeed();
         uint256 randomness = uint256(keccak256(abi.encodePacked("seed")));
         vrfCoordinator.callBackWithRandomness(requestId, randomness, address(randProvider));
     }
 
-    function testGobblerPrice() public view {
-        gobblers.gobblerPrice();
+    function testBlobPrice() public view {
+        blobs.blobPrice();
     }
 
-    function testMintGobbler() public {
-        gobblers.mintFromGoo(type(uint256).max);
+    function testMintBlob() public {
+        blobs.mintFromGoo(type(uint256).max);
     }
 
-    function testTransferGobbler() public {
-        gobblers.transferFrom(address(this), address(0xBEEF), 1);
+    function testTransferBlob() public {
+        blobs.transferFrom(address(this), address(0xBEEF), 1);
     }
 
-    function testRevealGobblers() public {
-        gobblers.revealGobblers(100);
+    function testRevealBlobs() public {
+        blobs.revealBlobs(100);
     }
 
-    function testMintReservedGobblers() public {
-        gobblers.mintReservedGobblers(1);
+    function testMintReservedBlobs() public {
+        blobs.mintReservedBlobs(1);
     }
 
-    function mintGobblerToAddress(address addr, uint256 num) internal {
+    function mintBlobToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
-            vm.startPrank(address(gobblers));
-            goo.mintForGobblers(addr, gobblers.gobblerPrice());
+            vm.startPrank(address(blobs));
+            goo.mintForBlobs(addr, blobs.blobPrice());
             vm.stopPrank();
 
             vm.prank(addr);
-            gobblers.mintFromGoo(type(uint256).max);
+            blobs.mintFromGoo(type(uint256).max);
         }
     }
 }

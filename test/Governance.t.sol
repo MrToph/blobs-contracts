@@ -5,9 +5,9 @@ import {Vm} from "forge-std/Vm.sol";
 import {Test, stdError} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 import {Utilities} from "./utils/Utilities.sol";
-import {ArtGobblers, FixedPointMathLib} from "../src/ArtGobblers.sol";
+import {Blobs, FixedPointMathLib} from "../src/Blobs.sol";
 import {Goo} from "../src/Goo.sol";
-import {GobblerReserve} from "../src/utils/GobblerReserve.sol";
+import {BlobReserve} from "../src/utils/BlobReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
 import {LinkToken} from "./utils/mocks/LinkToken.sol";
@@ -28,14 +28,14 @@ enum Support {
     Abstain
 }
 
-/// @notice Unit test for Art Gobbler Contract.
+/// @notice Unit test for Art Blob Contract.
 contract GovernanceTest is Test {
     using LibString for uint256;
 
     Utilities internal utils;
     address payable[] internal users;
 
-    ArtGobblers internal gobblers;
+    Blobs internal blobs;
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
@@ -66,11 +66,11 @@ contract GovernanceTest is Test {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 4 contract deploys
-        address gobblerAddress = utils.predictContractAddress(address(this), 2);
+        //blobs contract will be deployed after 4 contract deploys
+        address blobAddress = utils.predictContractAddress(address(this), 2);
 
         randProvider = new ChainlinkV1RandProvider(
-            ArtGobblers(gobblerAddress),
+            Blobs(blobAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
@@ -78,17 +78,17 @@ contract GovernanceTest is Test {
         );
 
         goo = new Goo(
-            // Gobblers:
+            // Blobs:
             utils.predictContractAddress(address(this), 1),
             // Pages:
             address(0xDEAD)
         );
 
-        gobblers = new ArtGobblers(
+        blobs = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
-            // team gobblers directly go to team, community gobblers too and are to be distributed
+            // team blobs directly go to team, community blobs too and are to be distributed
             address(foundersMsig),
             address(foundersMsig),
             randProvider,
@@ -101,12 +101,12 @@ contract GovernanceTest is Test {
         // users approve contract
         for (uint256 i = 0; i < users.length; ++i) {
             vm.prank(users[i]);
-            goo.approve(address(gobblers), type(uint256).max);
+            goo.approve(address(blobs), type(uint256).max);
         }
 
         // send some goo to timelock
-        vm.prank(address(gobblers));
-        goo.mintForGobblers(address(timelock), 1000e18);
+        vm.prank(address(blobs));
+        goo.mintForBlobs(address(timelock), 1000e18);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -115,13 +115,13 @@ contract GovernanceTest is Test {
 
     /// @notice Test that you can mint from mintlist successfully.
     function testProposalSuccess() public {
-        _mintGobblerToAddress(users[0], 2);
-        _mintGobblerToAddress(users[1], 8);
-        assertEq(gobblers.totalSupply(), 10);
+        _mintBlobToAddress(users[0], 2);
+        _mintBlobToAddress(users[1], 8);
+        assertEq(blobs.totalSupply(), 10);
         vm.roll(block.number + 1); // snapshot votes
 
-        assertEq(gobblers.balanceOf(users[0]), 2);
-        assertEq(gobblers.getPriorVotes(users[0], block.number - 1), 2);
+        assertEq(blobs.balanceOf(users[0]), 2);
+        assertEq(blobs.getPriorVotes(users[0], block.number - 1), 2);
 
         vm.startPrank(users[0]);
         // 1. Propose
@@ -173,6 +173,7 @@ contract GovernanceTest is Test {
         string memory description
     )
         internal
+        pure
         returns (
             address[] memory targets,
             uint256[] memory values,
@@ -192,20 +193,20 @@ contract GovernanceTest is Test {
         descript = description;
     }
 
-    /// @notice Mint a number of gobblers to the given address
-    function _mintGobblerToAddress(address addr, uint256 num) internal {
+    /// @notice Mint a number of blobs to the given address
+    function _mintBlobToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
-            vm.startPrank(address(gobblers));
-            goo.mintForGobblers(addr, gobblers.gobblerPrice());
+            vm.startPrank(address(blobs));
+            goo.mintForBlobs(addr, blobs.blobPrice());
             vm.stopPrank();
 
-            uint256 gobblersOwnedBefore = gobblers.balanceOf(addr);
+            uint256 blobsOwnedBefore = blobs.balanceOf(addr);
 
             vm.prank(addr);
-            // note: transfers goo from caller to ArtGobblers.team
-            gobblers.mintFromGoo(type(uint256).max);
+            // note: transfers goo from caller to Blobs.team
+            blobs.mintFromGoo(type(uint256).max);
 
-            assertEq(gobblers.balanceOf(addr), gobblersOwnedBefore + 1);
+            assertEq(blobs.balanceOf(addr), blobsOwnedBefore + 1);
         }
     }
 
@@ -223,7 +224,7 @@ contract GovernanceTest is Test {
         // its constructor already calls implemenation.initialize(args)
         NounsDAOProxyV2 p = new NounsDAOProxyV2({
             timelock_: address(timelock),
-            nouns_: address(gobblers),
+            nouns_: address(blobs),
             vetoer_: address(foundersMsig),
             admin_: address(foundersMsig), // can set voting delays, voting periods, thresholds
             implementation_: address(implementation),
