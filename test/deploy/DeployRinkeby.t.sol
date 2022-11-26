@@ -24,11 +24,11 @@ contract DeployRinkebyTest is DSTestPlus {
         // Use merkle root as user to test simple proof.
         address user = deployScript.root();
         bytes32[] memory proof;
-        Blobs gobblers = deployScript.blobs();
+        Blobs blobs = deployScript.blobs();
         vm.prank(user);
-        gobblers.claimGobbler(proof);
+        blobs.claimGobbler(proof);
         // Verify gobbler ownership.
-        assertEq(gobblers.ownerOf(1), user);
+        assertEq(blobs.ownerOf(1), user);
     }
 
     /// @notice Test cold wallet was appropriately set.
@@ -42,8 +42,8 @@ contract DeployRinkebyTest is DSTestPlus {
 
     /// @notice Test URIs are correctly set.
     function testURIs() public {
-        Blobs gobblers = deployScript.blobs();
-        assertEq(gobblers.BASE_URI(), deployScript.gobblerBaseUri());
-        assertEq(gobblers.UNREVEALED_URI(), deployScript.gobblerUnrevealedUri());
+        Blobs blobs = deployScript.blobs();
+        assertEq(blobs.BASE_URI(), deployScript.gobblerBaseUri());
+        assertEq(blobs.UNREVEALED_URI(), deployScript.gobblerUnrevealedUri());
     }
 }

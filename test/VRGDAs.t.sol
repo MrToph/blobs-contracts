@@ -21,7 +21,7 @@ contract VRGDAsTest is DSTestPlus {
     Utilities internal utils;
     address payable[] internal users;
 
-    Blobs private gobblers;
+    Blobs private blobs;
     VRFCoordinatorMock private vrfCoordinator;
     LinkToken private linkToken;
 
@@ -37,7 +37,7 @@ contract VRGDAsTest is DSTestPlus {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 2 contract deploys
+        //blobs contract will be deployed after 2 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 2);
 
         randProvider = new ChainlinkV1RandProvider(
@@ -50,7 +50,7 @@ contract VRGDAsTest is DSTestPlus {
 
         goo = new Goo(gobblerAddress, address(0xDEAD));
 
-        gobblers = new Blobs(
+        blobs = new Blobs(
             "root",
             block.timestamp,
             goo,
@@ -65,35 +65,35 @@ contract VRGDAsTest is DSTestPlus {
     // function testFindGobblerOverflowPoint() public view {
     //     uint256 sold;
     //     while (true) {
-    //         gobblers.getPrice(0 days, sold++);
+    //         blobs.getPrice(0 days, sold++);
     //     }
     // }
 
-    function testNoOverflowForMostGobblers(uint256 timeSinceStart, uint256 sold) public {
-        gobblers.getVRGDAPrice(toDaysWadUnsafe(bound(timeSinceStart, 0 days, ONE_THOUSAND_YEARS)), bound(sold, 0, 1730));
+    function testNoOverflowForMostBlobs(uint256 timeSinceStart, uint256 sold) public {
+        blobs.getVRGDAPrice(toDaysWadUnsafe(bound(timeSinceStart, 0 days, ONE_THOUSAND_YEARS)), bound(sold, 0, 1730));
     }
 
-    function testNoOverflowForAllGobblers(uint256 timeSinceStart, uint256 sold) public {
-        gobblers.getVRGDAPrice(
+    function testNoOverflowForAllBlobs(uint256 timeSinceStart, uint256 sold) public {
+        blobs.getVRGDAPrice(
             toDaysWadUnsafe(bound(timeSinceStart, 3870 days, ONE_THOUSAND_YEARS)),
-            bound(sold, 0, gobblers.MAX_MINTABLE() - 1)
+            bound(sold, 0, blobs.MAX_MINTABLE() - 1)
         );
     }
 
-    function testFailOverflowForBeyondLimitGobblers(uint256 timeSinceStart, uint256 sold) public {
+    function testFailOverflowForBeyondLimitBlobs(uint256 timeSinceStart, uint256 sold) public {
         // Blobs calls getVRGDAPrice(., numMintedFromGoo) where numMintedFromGoo < MAX_MINTABLE()
-        gobblers.getVRGDAPrice(
+        blobs.getVRGDAPrice(
             toDaysWadUnsafe(bound(timeSinceStart, 0 days, ONE_THOUSAND_YEARS)),
-            bound(sold, gobblers.MAX_MINTABLE(), type(uint128).max)
+            bound(sold, blobs.MAX_MINTABLE(), type(uint128).max)
         );
     }
 
-    function testGobblerPriceStrictlyIncreasesForMostGobblers() public {
+    function testGobblerPriceStrictlyIncreasesForMostBlobs() public {
         uint256 sold;
         uint256 previousPrice;
 
         while (sold <= 1730) {
-            uint256 price = gobblers.getVRGDAPrice(0 days, sold++);
+            uint256 price = blobs.getVRGDAPrice(0 days, sold++);
             assertGt(price, previousPrice);
             previousPrice = price;
         }

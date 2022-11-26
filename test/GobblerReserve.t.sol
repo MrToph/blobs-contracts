@@ -25,7 +25,7 @@ contract GobblerReserveTest is DSTestPlus {
     Utilities internal utils;
     address payable[] internal users;
 
-    Blobs internal gobblers;
+    Blobs internal blobs;
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
@@ -48,7 +48,7 @@ contract GobblerReserveTest is DSTestPlus {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 4 contract deploys
+        //blobs contract will be deployed after 4 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 4);
 
         team = new GobblerReserve(Blobs(gobblerAddress), address(this));
@@ -62,13 +62,13 @@ contract GobblerReserveTest is DSTestPlus {
         );
 
         goo = new Goo(
-            // Gobblers:
+            // Blobs:
             utils.predictContractAddress(address(this), 1),
             // Pages:
             address(0xDEAD)
         );
 
-        gobblers = new Blobs(
+        blobs = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
@@ -82,7 +82,7 @@ contract GobblerReserveTest is DSTestPlus {
         // users approve contract
         for (uint256 i = 0; i < users.length; ++i) {
             vm.prank(users[i]);
-            goo.approve(address(gobblers), type(uint256).max);
+            goo.approve(address(blobs), type(uint256).max);
         }
     }
 
@@ -94,10 +94,10 @@ contract GobblerReserveTest is DSTestPlus {
     function testCanWithdraw() public {
         mintGobblerToAddress(users[0], 9);
 
-        gobblers.mintReservedGobblers(1);
+        blobs.mintReservedBlobs(1);
 
-        assertEq(gobblers.ownerOf(10), address(team));
-        assertEq(gobblers.ownerOf(11), address(community));
+        assertEq(blobs.ownerOf(10), address(team));
+        assertEq(blobs.ownerOf(11), address(community));
 
         uint256[] memory idsToWithdraw = new uint256[](1);
 
@@ -107,23 +107,23 @@ contract GobblerReserveTest is DSTestPlus {
         idsToWithdraw[0] = 11;
         community.withdraw(address(this), idsToWithdraw);
 
-        assertEq(gobblers.ownerOf(10), address(this));
-        assertEq(gobblers.ownerOf(11), address(this));
+        assertEq(blobs.ownerOf(10), address(this));
+        assertEq(blobs.ownerOf(11), address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
                                  HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Mint a number of gobblers to the given address
+    /// @notice Mint a number of blobs to the given address
     function mintGobblerToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
-            vm.startPrank(address(gobblers));
-            goo.mintForGobblers(addr, gobblers.gobblerPrice());
+            vm.startPrank(address(blobs));
+            goo.mintForBlobs(addr, blobs.gobblerPrice());
             vm.stopPrank();
 
             vm.prank(addr);
-            gobblers.mintFromGoo(type(uint256).max);
+            blobs.mintFromGoo(type(uint256).max);
         }
     }
 }

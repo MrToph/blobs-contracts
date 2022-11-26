@@ -25,7 +25,7 @@ contract RandProviderTest is DSTestPlus {
     Utilities internal utils;
     address payable[] internal users;
 
-    Blobs internal gobblers;
+    Blobs internal blobs;
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
@@ -51,7 +51,7 @@ contract RandProviderTest is DSTestPlus {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 4 contract deploys
+        //blobs contract will be deployed after 4 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 4);
 
         team = new GobblerReserve(Blobs(gobblerAddress), address(this));
@@ -65,13 +65,13 @@ contract RandProviderTest is DSTestPlus {
         );
 
         goo = new Goo(
-            // Gobblers:
+            // Blobs:
             utils.predictContractAddress(address(this), 1),
             // Pages:
             address(0xDEAD)
         );
 
-        gobblers = new Blobs(
+        blobs = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
@@ -85,7 +85,7 @@ contract RandProviderTest is DSTestPlus {
         // users approve contract
         for (uint256 i = 0; i < users.length; ++i) {
             vm.prank(users[i]);
-            goo.approve(address(gobblers), type(uint256).max);
+            goo.approve(address(blobs), type(uint256).max);
         }
     }
 
@@ -98,25 +98,25 @@ contract RandProviderTest is DSTestPlus {
         vm.expectEmit(true, false, false, false); // only check the first indexed event (sender address)
         emit RandomnessRequest(address(randProvider), 0, 0);
 
-        gobblers.requestRandomSeed();
+        blobs.requestRandomSeed();
     }
 
     function testRandomnessIsFulfilled() public {
         //initially, randomness should be 0
-        (uint64 randomSeed,,,,) = gobblers.gobblerRevealsData();
+        (uint64 randomSeed,,,,) = blobs.gobblerRevealsData();
         assertEq(randomSeed, 0);
         mintGobblerToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
-        bytes32 requestId = gobblers.requestRandomSeed();
+        bytes32 requestId = blobs.requestRandomSeed();
         uint256 randomness = uint256(keccak256(abi.encodePacked("seed")));
         vrfCoordinator.callBackWithRandomness(requestId, randomness, address(randProvider));
-        //randomness from vrf should be set in gobblers contract
-        (randomSeed,,,,) = gobblers.gobblerRevealsData();
+        //randomness from vrf should be set in blobs contract
+        (randomSeed,,,,) = blobs.gobblerRevealsData();
         assertEq(randomSeed, uint64(randomness));
     }
 
-    function testOnlyGobblersCanRequestRandomness() public {
-        vm.expectRevert(ChainlinkV1RandProvider.NotGobblers.selector);
+    function testOnlyBlobsCanRequestRandomness() public {
+        vm.expectRevert(ChainlinkV1RandProvider.NotBlobs.selector);
         randProvider.requestRandomBytes();
     }
 
@@ -124,43 +124,43 @@ contract RandProviderTest is DSTestPlus {
         RandProvider newProvider = new ChainlinkV1RandProvider(Blobs(address(0)), address(0), address(0), 0, 0);
         vm.expectRevert("UNAUTHORIZED");
         vm.prank(address(0xBEEFBABE));
-        gobblers.upgradeRandProvider(newProvider);
+        blobs.upgradeRandProvider(newProvider);
     }
 
     function testRandomnessIsNotUpgradableWithPendingSeed() public {
         mintGobblerToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
-        gobblers.requestRandomSeed();
+        blobs.requestRandomSeed();
         RandProvider newProvider = new ChainlinkV1RandProvider(Blobs(address(0)), address(0), address(0), 0, 0);
         vm.expectRevert(Blobs.SeedPending.selector);
-        gobblers.upgradeRandProvider(newProvider);
+        blobs.upgradeRandProvider(newProvider);
     }
 
     function testRandomnessIsUpgradable() public {
         mintGobblerToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
         //initial address is correct
-        assertEq(address(gobblers.randProvider()), address(randProvider));
+        assertEq(address(blobs.randProvider()), address(randProvider));
 
         RandProvider newProvider = new ChainlinkV1RandProvider(Blobs(address(0)), address(0), address(0), 0, 0);
-        gobblers.upgradeRandProvider(newProvider);
+        blobs.upgradeRandProvider(newProvider);
         //final address is correct
-        assertEq(address(gobblers.randProvider()), address(newProvider));
+        assertEq(address(blobs.randProvider()), address(newProvider));
     }
 
     /*//////////////////////////////////////////////////////////////
                                  HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Mint a number of gobblers to the given address
+    /// @notice Mint a number of blobs to the given address
     function mintGobblerToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
-            vm.startPrank(address(gobblers));
-            goo.mintForGobblers(addr, gobblers.gobblerPrice());
+            vm.startPrank(address(blobs));
+            goo.mintForBlobs(addr, blobs.gobblerPrice());
             vm.stopPrank();
 
             vm.prank(addr);
-            gobblers.mintFromGoo(type(uint256).max);
+            blobs.mintFromGoo(type(uint256).max);
         }
     }
 }

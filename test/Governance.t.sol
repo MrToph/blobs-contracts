@@ -35,7 +35,7 @@ contract GovernanceTest is Test {
     Utilities internal utils;
     address payable[] internal users;
 
-    Blobs internal gobblers;
+    Blobs internal blobs;
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
@@ -66,7 +66,7 @@ contract GovernanceTest is Test {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 4 contract deploys
+        //blobs contract will be deployed after 4 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 2);
 
         randProvider = new ChainlinkV1RandProvider(
@@ -78,17 +78,17 @@ contract GovernanceTest is Test {
         );
 
         goo = new Goo(
-            // Gobblers:
+            // Blobs:
             utils.predictContractAddress(address(this), 1),
             // Pages:
             address(0xDEAD)
         );
 
-        gobblers = new Blobs(
+        blobs = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
-            // team gobblers directly go to team, community gobblers too and are to be distributed
+            // team blobs directly go to team, community blobs too and are to be distributed
             address(foundersMsig),
             address(foundersMsig),
             randProvider,
@@ -101,12 +101,12 @@ contract GovernanceTest is Test {
         // users approve contract
         for (uint256 i = 0; i < users.length; ++i) {
             vm.prank(users[i]);
-            goo.approve(address(gobblers), type(uint256).max);
+            goo.approve(address(blobs), type(uint256).max);
         }
 
         // send some goo to timelock
-        vm.prank(address(gobblers));
-        goo.mintForGobblers(address(timelock), 1000e18);
+        vm.prank(address(blobs));
+        goo.mintForBlobs(address(timelock), 1000e18);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -117,11 +117,11 @@ contract GovernanceTest is Test {
     function testProposalSuccess() public {
         _mintGobblerToAddress(users[0], 2);
         _mintGobblerToAddress(users[1], 8);
-        assertEq(gobblers.totalSupply(), 10);
+        assertEq(blobs.totalSupply(), 10);
         vm.roll(block.number + 1); // snapshot votes
 
-        assertEq(gobblers.balanceOf(users[0]), 2);
-        assertEq(gobblers.getPriorVotes(users[0], block.number - 1), 2);
+        assertEq(blobs.balanceOf(users[0]), 2);
+        assertEq(blobs.getPriorVotes(users[0], block.number - 1), 2);
 
         vm.startPrank(users[0]);
         // 1. Propose
@@ -193,20 +193,20 @@ contract GovernanceTest is Test {
         descript = description;
     }
 
-    /// @notice Mint a number of gobblers to the given address
+    /// @notice Mint a number of blobs to the given address
     function _mintGobblerToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
-            vm.startPrank(address(gobblers));
-            goo.mintForGobblers(addr, gobblers.gobblerPrice());
+            vm.startPrank(address(blobs));
+            goo.mintForBlobs(addr, blobs.gobblerPrice());
             vm.stopPrank();
 
-            uint256 gobblersOwnedBefore = gobblers.balanceOf(addr);
+            uint256 blobsOwnedBefore = blobs.balanceOf(addr);
 
             vm.prank(addr);
             // note: transfers goo from caller to Blobs.team
-            gobblers.mintFromGoo(type(uint256).max);
+            blobs.mintFromGoo(type(uint256).max);
 
-            assertEq(gobblers.balanceOf(addr), gobblersOwnedBefore + 1);
+            assertEq(blobs.balanceOf(addr), blobsOwnedBefore + 1);
         }
     }
 
@@ -224,7 +224,7 @@ contract GovernanceTest is Test {
         // its constructor already calls implemenation.initialize(args)
         NounsDAOProxyV2 p = new NounsDAOProxyV2({
             timelock_: address(timelock),
-            nouns_: address(gobblers),
+            nouns_: address(blobs),
             vetoer_: address(foundersMsig),
             admin_: address(foundersMsig), // can set voting delays, voting periods, thresholds
             implementation_: address(implementation),

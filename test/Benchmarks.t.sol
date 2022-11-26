@@ -18,7 +18,7 @@ contract BenchmarksTest is DSTest {
     Utilities internal utils;
     address payable[] internal users;
 
-    Blobs private gobblers;
+    Blobs private blobs;
     VRFCoordinatorMock private vrfCoordinator;
     LinkToken private linkToken;
     RandProvider private randProvider;
@@ -35,7 +35,7 @@ contract BenchmarksTest is DSTest {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //gobblers contract will be deployed after 2 contract deploys
+        //blobs contract will be deployed after 2 contract deploys
         address gobblerAddress = utils.predictContractAddress(address(this), 2);
 
         randProvider = new ChainlinkV1RandProvider(
@@ -48,7 +48,7 @@ contract BenchmarksTest is DSTest {
 
         goo = new Goo(gobblerAddress, address(0xDEAD));
 
-        gobblers = new Blobs(
+        blobs = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
@@ -59,48 +59,48 @@ contract BenchmarksTest is DSTest {
             ""
         );
 
-        vm.prank(address(gobblers));
-        goo.mintForGobblers(address(this), type(uint192).max);
+        vm.prank(address(blobs));
+        goo.mintForBlobs(address(this), type(uint192).max);
 
         // approve contract
-        goo.approve(address(gobblers), type(uint256).max);
+        goo.approve(address(blobs), type(uint256).max);
         mintGobblerToAddress(address(this), 1000);
 
         vm.warp(block.timestamp + 30 days);
 
-        bytes32 requestId = gobblers.requestRandomSeed();
+        bytes32 requestId = blobs.requestRandomSeed();
         uint256 randomness = uint256(keccak256(abi.encodePacked("seed")));
         vrfCoordinator.callBackWithRandomness(requestId, randomness, address(randProvider));
     }
 
     function testGobblerPrice() public view {
-        gobblers.gobblerPrice();
+        blobs.gobblerPrice();
     }
 
     function testMintGobbler() public {
-        gobblers.mintFromGoo(type(uint256).max);
+        blobs.mintFromGoo(type(uint256).max);
     }
 
     function testTransferGobbler() public {
-        gobblers.transferFrom(address(this), address(0xBEEF), 1);
+        blobs.transferFrom(address(this), address(0xBEEF), 1);
     }
 
-    function testRevealGobblers() public {
-        gobblers.revealGobblers(100);
+    function testRevealBlobs() public {
+        blobs.revealBlobs(100);
     }
 
-    function testMintReservedGobblers() public {
-        gobblers.mintReservedGobblers(1);
+    function testMintReservedBlobs() public {
+        blobs.mintReservedBlobs(1);
     }
 
     function mintGobblerToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
-            vm.startPrank(address(gobblers));
-            goo.mintForGobblers(addr, gobblers.gobblerPrice());
+            vm.startPrank(address(blobs));
+            goo.mintForBlobs(addr, blobs.gobblerPrice());
             vm.stopPrank();
 
             vm.prank(addr);
-            gobblers.mintFromGoo(type(uint256).max);
+            blobs.mintFromGoo(type(uint256).max);
         }
     }
 }

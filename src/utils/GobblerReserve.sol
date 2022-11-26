@@ -8,13 +8,13 @@ import {Blobs} from "../Blobs.sol";
 /// @title Gobbler Reserve
 /// @author FrankieIsLost <frankie@paradigm.xyz>
 /// @author transmissions11 <t11s@paradigm.xyz>
-/// @notice Reserves gobblers for an owner while keeping any goo produced.
+/// @notice Reserves blobs for an owner while keeping any goo produced.
 contract GobblerReserve is Owned {
     /*//////////////////////////////////////////////////////////////
                                 ADDRESSES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Art Gobblers contract address.
+    /// @notice Blobs contract address.
     Blobs public immutable blobs;
 
     /// @notice Sets the addresses of relevant contracts and users.
@@ -28,9 +28,9 @@ contract GobblerReserve is Owned {
                             WITHDRAWAL LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Withdraw gobblers from the reserve.
-    /// @param to The address to transfer the gobblers to.
-    /// @param ids The ids of the gobblers to transfer.
+    /// @notice Withdraw blobs from the reserve.
+    /// @param to The address to transfer the blobs to.
+    /// @param ids The ids of the blobs to transfer.
     function withdraw(address to, uint256[] calldata ids) external onlyOwner {
         // This is quite inefficient, but that's fine, it's not a hot path.
         unchecked {

@@ -60,7 +60,7 @@ contract Goo is ERC20("Goo", "GOO", 18) {
                                 ADDRESSES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The address of the Art Gobblers contract.
+    /// @notice The address of the Blobs contract.
     address public immutable blobs;
 
     /// @notice The address of the Pages contract.
@@ -98,14 +98,14 @@ contract Goo is ERC20("Goo", "GOO", 18) {
     /// @notice Mint any amount of goo to a user. Can only be called by Blobs.
     /// @param to The address of the user to mint goo to.
     /// @param amount The amount of goo to mint.
-    function mintForGobblers(address to, uint256 amount) external only(blobs) {
+    function mintForBlobs(address to, uint256 amount) external only(blobs) {
         _mint(to, amount);
     }
 
     /// @notice Burn any amount of goo from a user. Can only be called by Blobs.
     /// @param from The address of the user to burn goo from.
     /// @param amount The amount of goo to burn.
-    function burnForGobblers(address from, uint256 amount) external only(blobs) {
+    function burnForBlobs(address from, uint256 amount) external only(blobs) {
         _burn(from, amount);
     }
 

@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 
 /**
- * Base: https://github.com/artgobblers/art-gobblers/tree/a337353df07193225aad40e8d6659bd67b0abb20
+ * Base: https://github.com/artgobblers/art-blobs/tree/a337353df07193225aad40e8d6659bd67b0abb20
  * Modifications:
  * - removed gobbler related fields from structures like emissionMultiples, balances, etc.
  * - added `totalSupply` as it's required for NounsGovernance: https://github.com/nounsDAO/nouns-monorepo/blob/fe099f0df11e5e4de81cc0cd6a2186d3c82135ed/packages/nouns-contracts/contracts/governance/NounsDAOInterfaces.sol#L442
@@ -47,7 +47,7 @@ abstract contract ERC721 {
 
     /// @notice Maps gobbler ids to their data.
     mapping(uint256 => GobblerData) public getGobblerData;
-    // @notice Maps an address to number of gobblers owned
+    // @notice Maps an address to number of blobs owned
     mapping(address => uint256) internal _balanceOf;
     uint256 public totalSupply;
 

@@ -16,7 +16,7 @@ contract ChainlinkV1RandProvider is RandProvider, VRFConsumerBase {
                                 ADDRESSES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The address of the Art Gobblers contract.
+    /// @notice The address of the Blobs contract.
     Blobs public immutable blobs;
 
     /*//////////////////////////////////////////////////////////////
@@ -33,7 +33,7 @@ contract ChainlinkV1RandProvider is RandProvider, VRFConsumerBase {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error NotGobblers();
+    error NotBlobs();
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
@@ -63,7 +63,7 @@ contract ChainlinkV1RandProvider is RandProvider, VRFConsumerBase {
     /// @notice Request random bytes from Chainlink VRF. Can only by called by the Blobs contract.
     function requestRandomBytes() external returns (bytes32 requestId) {
         // The caller must be the Blobs contract, revert otherwise.
-        if (msg.sender != address(blobs)) revert NotGobblers();
+        if (msg.sender != address(blobs)) revert NotBlobs();
 
         emit RandomBytesRequested(requestId);
 
