@@ -49,10 +49,11 @@ contract GovernanceTest is Test {
     uint256[] ids;
 
     // Governance
-    // TODO: understand and choose these parameters
     uint256 constant executionDelaySeconds = 3 days; // earliest eta a successful execution can be queued in timelock.queueTransaction. I guess this is an additional safety measure for the vetoer to call veto. time for everyone to sign an msig
-    uint256 constant votingDelayBlocks = 1; // # blocks after proposing when users can start voting
-    uint256 constant votingPeriodBlocks = 1 weeks / 12; // 12s block time
+    // Nouns uses delay of 14400 = 2 days @ 12 seconds per block
+    uint256 constant votingDelayBlocks = 2 days / 12; // # blocks after proposing when users can start voting
+    // Nouns uses delay of 36000 = 5 days @ 12 seconds per block
+    uint256 constant votingPeriodBlocks = 5 days / 12; // # blocks users can vote on proposals
     NounsDAOExecutor private timelock;
     NounsDAOLogicV2 private proxy;
 
@@ -213,10 +214,12 @@ contract GovernanceTest is Test {
     function _deployGovernance() internal {
         timelock = new NounsDAOExecutor({admin_: address(foundersMsig), delay_: executionDelaySeconds});
 
+        // https://etherscan.io/address/0x6f3e6272a167e8accb32072d08e0957f9c79223d#readProxyContract
+        // 1000,1500,1_000_000
         NounsDAOStorageV2.DynamicQuorumParams memory dynamicQuorumParams = NounsDAOStorageV2.DynamicQuorumParams({
-            minQuorumVotesBPS: 0.2e4,
-            maxQuorumVotesBPS: 0.6e4,
-            quorumCoefficient: 0.2e6
+            minQuorumVotesBPS: 0.1000e4,
+            maxQuorumVotesBPS: 0.1500e4,
+            quorumCoefficient: 1e6
         });
 
         NounsDAOLogicV2 implementation = new NounsDAOLogicV2();
@@ -230,7 +233,7 @@ contract GovernanceTest is Test {
             implementation_: address(implementation),
             votingPeriod_: votingPeriodBlocks,
             votingDelay_: votingDelayBlocks,
-            proposalThresholdBPS_: 0.1e4, // proposalThresholdBPS * totalSupply / 1e4 required of msg.sender to _propose_
+            proposalThresholdBPS_: 25, // proposalThresholdBPS * totalSupply / 1e4 required of msg.sender to _propose_
             dynamicQuorumParams_: dynamicQuorumParams
         });
 

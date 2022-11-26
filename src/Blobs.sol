@@ -39,8 +39,8 @@ contract Blobs is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiv
     /// @notice The address which receives blobs reserved for the team.
     address public immutable team;
 
-    /// @notice The address which receives blobs reserved for the community.
-    address public immutable community;
+    /// @notice The address which receives goo from blob sales.
+    address public immutable salesReceiver;
 
     /// @notice The address of a randomness provider. This provider will initially be
     /// a wrapper around Chainlink VRF v1, but can be changed in case it is fully sunset.
@@ -54,11 +54,11 @@ contract Blobs is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiv
     uint256 public constant MAX_SUPPLY = 10000;
 
     /// @notice Maximum amount of blobs mintable via mintlist.
-    uint256 public constant MINTLIST_SUPPLY = 2000;
+    uint256 public constant MINTLIST_SUPPLY = 2000; // TODO: get number
 
     /// @notice Maximum amount of blobs split between the reserves.
-    /// @dev Set to comprise 20% of the sum of goo mintable blobs + reserved blobs.
-    uint256 public constant RESERVED_SUPPLY = (MAX_SUPPLY - MINTLIST_SUPPLY) / 5;
+    /// @dev Set to comprise 10% of the sum of goo mintable blobs + reserved blobs.
+    uint256 public constant RESERVED_SUPPLY = (MAX_SUPPLY - MINTLIST_SUPPLY) / 10;
 
     /// @notice Maximum amount of blobs that can be minted via VRGDA.
     // prettier-ignore
@@ -171,7 +171,7 @@ contract Blobs is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiv
     /// @param _mintStart Timestamp for the start of the VRGDA mint.
     /// @param _goo Address of the Goo contract.
     /// @param _team Address of the team reserve.
-    /// @param _community Address of the community reserve.
+    /// @param _salesReceiver Address receiving goo from the blob mints.
     /// @param _randProvider Address of the randomness provider.
     /// @param _baseUri Base URI for revealed blobs.
     /// @param _unrevealedUri URI for unrevealed blobs.
@@ -182,7 +182,7 @@ contract Blobs is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiv
         // Addresses:
         Goo _goo,
         address _team,
-        address _community,
+        address _salesReceiver,
         RandProvider _randProvider,
         // URIs:
         string memory _baseUri,
@@ -203,7 +203,7 @@ contract Blobs is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiv
 
         goo = _goo;
         team = _team;
-        community = _community;
+        salesReceiver = _salesReceiver;
         randProvider = _randProvider;
 
         BASE_URI = _baseUri;
@@ -259,8 +259,7 @@ contract Blobs is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiv
         if (currentPrice > maxPrice) revert PriceExceededMax(currentPrice);
 
         // Decrement the user's goo balance by the current price
-        // TODO: check if team is the correct recipient. same address that receives the team blobs?
-        goo.transferFrom(msg.sender, address(team), currentPrice);
+        goo.transferFrom(msg.sender, address(salesReceiver), currentPrice);
 
         unchecked {
             ++numMintedFromGoo; // Overflow should be impossible due to the supply cap.
@@ -475,16 +474,15 @@ contract Blobs is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiv
             // Optimistically increment numMintedForReserves, may be reverted below.
             // Overflow in this calculation is possible but numBlobsEach would have to
             // be so large that it would cause the loop in _batchMint to run out of gas quickly.
-            uint256 newNumMintedForReserves = numMintedForReserves += (numBlobsEach * 2);
+            uint256 newNumMintedForReserves = numMintedForReserves += numBlobsEach;
 
             // Ensure that after this mint blobs minted to reserves won't comprise more than 20% of
             // the sum of the supply of goo minted blobs and the supply of blobs minted to reserves.
-            if (newNumMintedForReserves > (numMintedFromGoo + newNumMintedForReserves) / 5) revert ReserveImbalance();
+            if (newNumMintedForReserves > (numMintedFromGoo + newNumMintedForReserves) / 10) revert ReserveImbalance();
         }
 
         // Mint numBlobsEach blobs to both the team and community reserve.
         lastMintedBlobId = _batchMint(team, numBlobsEach, lastUsedId);
-        lastMintedBlobId = _batchMint(community, numBlobsEach, lastMintedBlobId);
 
         lastUsedId = uint128(lastMintedBlobId); // Set lastUsedId.
 
