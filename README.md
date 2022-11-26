@@ -6,6 +6,7 @@
 - [ ] add tests for `GobblerTreasury`
 - [ ] make `GobblerTreasury` upgradeable after timelock? by DAO?
 - [ ] deployment scripts
+- [ ] fix NounsGovernance contract size problems
 - [ ] ...
 
 ## Resources
