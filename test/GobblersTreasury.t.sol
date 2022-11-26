@@ -6,6 +6,7 @@ import {Test, stdError} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 import {Utilities} from "./utils/Utilities.sol";
 import {Blobs, FixedPointMathLib} from "../src/Blobs.sol";
+import {GobblersTreasury} from "../src/GobblersTreasury.sol";
 import {Goo} from "../src/Goo.sol";
 import {BlobReserve} from "../src/utils/BlobReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
@@ -29,7 +30,7 @@ enum Support {
 }
 
 /// @notice Unit test for Art Blob Contract.
-contract GovernanceTest is Test {
+contract GobblersTreasuryTests is Test {
     using LibString for uint256;
 
     Utilities internal utils;
@@ -56,6 +57,9 @@ contract GovernanceTest is Test {
     uint256 constant votingPeriodBlocks = 5 days / 12; // # blocks users can vote on proposals
     NounsDAOExecutor private timelock;
     NounsDAOLogicV2 private proxy;
+
+    address private gobblers;
+    GobblersTreasury private treasury;
 
     /*//////////////////////////////////////////////////////////////
                                   SETUP
@@ -99,6 +103,11 @@ contract GovernanceTest is Test {
 
         _deployGovernance();
 
+        // treasury = new GobblersTreasury(
+        //     address(gobblers), // TODO: add MockGobblers deployment
+        //     address(timelock)
+        // );
+
         // users approve contract
         for (uint256 i = 0; i < users.length; ++i) {
             vm.prank(users[i]);
@@ -115,53 +124,9 @@ contract GovernanceTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Test that you can mint from mintlist successfully.
-    function testProposalSuccess() public {
-        _mintBlobToAddress(users[0], 2);
-        _mintBlobToAddress(users[1], 8);
-        assertEq(blobs.totalSupply(), 10);
-        vm.roll(block.number + 1); // snapshot votes
-
-        assertEq(blobs.balanceOf(users[0]), 2);
-        assertEq(blobs.getPriorVotes(users[0], block.number - 1), 2);
-
-        vm.startPrank(users[0]);
-        // 1. Propose
-        (
-            address[] memory targets,
-            uint256[] memory values,
-            string[] memory signatures,
-            bytes[] memory calldatas,
-            string memory description
-        ) = _createProposal({
-            target: address(goo),
-            value: 0,
-            signature: "transfer(address,uint256)",
-            data: abi.encode(address(users[2]), 1e18),
-            description: "Goo funding proposal #1"
-        });
-        uint256 proposalId = proxy.propose(targets, values, signatures, calldatas, description);
-        vm.roll(block.number + votingDelayBlocks + 1); // skip voting delay + 1. +1 because of bug in NounsDAOLogicV2.state
-
-        // 2. Cast vote
-        // need to be >= quorumVotes(proposalId) which is defined as dynamicQuorumVotes(proposal.againstVotes, proposal.totalSupply):
-        // The more against-votes there are for a proposal, the higher the required quorum is.
-        console.log("quorum votes required %s", proxy.quorumVotes(proposalId));
-        proxy.castVote(proposalId, uint8(Support.For));
-
-        // 3. Queue proposal to timelock
-        vm.roll(block.number + votingPeriodBlocks); // skip voting period
-        proxy.queue(proposalId);
-        NounsDAOStorageV1Adjusted.ProposalState state = proxy.state(proposalId);
-        console.log("proposal state %s", uint256(state));
-
-        // 4. Execute proposal
-        // skip Timelock's execution delay
-        vm.warp(block.timestamp + executionDelaySeconds);
-        assertEq(goo.balanceOf(address(users[2])), 0);
-        proxy.execute(proposalId);
-        assertEq(goo.balanceOf(address(users[2])), 1e18);
-        vm.stopPrank();
+    function testGobblersTreasury() public {
     }
+
 
     /*//////////////////////////////////////////////////////////////
                                  HELPERS

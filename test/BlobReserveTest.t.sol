@@ -97,18 +97,13 @@ contract BlobReserveTest is DSTestPlus {
         blobs.mintReservedBlobs(1);
 
         assertEq(blobs.ownerOf(10), address(team));
-        assertEq(blobs.ownerOf(11), address(community));
 
         uint256[] memory idsToWithdraw = new uint256[](1);
 
         idsToWithdraw[0] = 10;
         team.withdraw(address(this), idsToWithdraw);
 
-        idsToWithdraw[0] = 11;
-        community.withdraw(address(this), idsToWithdraw);
-
         assertEq(blobs.ownerOf(10), address(this));
-        assertEq(blobs.ownerOf(11), address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
