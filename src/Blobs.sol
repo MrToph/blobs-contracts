@@ -22,6 +22,7 @@ import {RandProvider} from "./utils/rand/RandProvider.sol";
 import {ERC721Checkpointable} from "./utils/token/ERC721Checkpointable.sol";
 
 import {Goo} from "./Goo.sol";
+import {IGooSalesReceiver} from "./IGooSalesReceiver.sol";
 
 /// @title Blobs NFT
 /// @notice An experimental decentralized art companion project to ArtBlobs
@@ -259,7 +260,7 @@ contract Blobs is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiv
         if (currentPrice > maxPrice) revert PriceExceededMax(currentPrice);
 
         // Decrement the user's goo balance by the current price
-        goo.transferFrom(msg.sender, address(salesReceiver), currentPrice);
+        goo.transferFrom(msg.sender, salesReceiver, currentPrice);
 
         unchecked {
             ++numMintedFromGoo; // Overflow should be impossible due to the supply cap.
@@ -268,6 +269,10 @@ contract Blobs is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiv
         }
 
         _mint(msg.sender, blobId);
+        // hook into `salesReceiver` so they can add their goo
+        if (salesReceiver.code.length > 0) {
+            try IGooSalesReceiver(salesReceiver).addGoo() {} catch {}
+        }
     }
 
     /// @notice Blob pricing in terms of goo.
@@ -393,14 +398,12 @@ contract Blobs is ERC721Checkpointable, LogisticVRGDA, Owned, ERC1155TokenReceiv
                 //////////////////////////////////////////////////////////////*/
 
                 // Get the index of the swap id.
-                uint64 swapIndex =
-                    getBlobData[swapId].idx == 0
+                uint64 swapIndex = getBlobData[swapId].idx == 0
                     ? uint64(swapId) // Hasn't been shuffled before.
                     : getBlobData[swapId].idx; // Shuffled before.
 
                 // Get the index of the current id.
-                uint64 currentIndex =
-                    getBlobData[currentId].idx == 0
+                uint64 currentIndex = getBlobData[currentId].idx == 0
                     ? uint64(currentId) // Hasn't been shuffled before.
                     : getBlobData[currentId].idx; // Shuffled before.
 

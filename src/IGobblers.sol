@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 interface IGobblers is IERC721 {
+    function goo() external view returns (address);
     function getGobblerEmissionMultiple(uint256 gobblerId) external view returns (uint256);
     // g(now, user.m, user.gooVirtualBalance)
     function gooBalance(address user) external view returns (uint256);
@@ -11,6 +12,9 @@ interface IGobblers is IERC721 {
     function addGoo(uint256 gooAmount) external;
     // gobbler tank => ERC20
     function removeGoo(uint256 gooAmount) external;
+
+    function mintLegendaryGobbler(uint256[] calldata gobblerIds) external returns (uint256 gobblerId);
+    function mintFromGoo(uint256 maxPrice, bool useVirtualBalance) external returns (uint256 gobblerId);
 
     /// @notice Struct holding data relevant to each user's account.
     struct UserData {
