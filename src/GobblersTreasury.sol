@@ -54,7 +54,7 @@ contract GobblersTreasury is IGooSalesReceiver, Owned, ERC721TokenReceiver, ERC1
     //////////////////////////////////////////////////////////////*/
     function setTimelock(uint40 _newTimelockDuration) external onlyOwner {
         // prevent attack to reduce this to too low of a value
-        _newTimelockDuration = _newTimelockDuration < 60 days ? 60 days : _newTimelockDuration;
+        _newTimelockDuration = _newTimelockDuration < 30 days ? 30 days : _newTimelockDuration;
         // overflow the new timestamp computation to protect against attacks
         emit TimeLockUpdated(unlockTimestamp = uint40(block.timestamp) + _newTimelockDuration);
     }
@@ -69,18 +69,6 @@ contract GobblersTreasury is IGooSalesReceiver, Owned, ERC721TokenReceiver, ERC1
         }
     }
 
-    /*//////////////////////////////////////////////////////////////
-                            NON_TIMELOCKED DAO FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-    function removeGooAndTransfer(uint256 toWithdraw, uint256 toSend, address receiver) external onlyOwner timeLocked {
-        if (toWithdraw > 0) {
-            IGobblers(gobblers).removeGoo(toSend);
-        }
-        if (toSend > 0 && receiver != address(0) && receiver != address(this)) {
-            goo.transfer(receiver, toSend);
-        }
-    }
-
     function mintLegendaryGobbler(uint256[] calldata gobblerIds) external returns (uint256 gobblerId) {
         gobblerId = gobblers.mintLegendaryGobbler(gobblerIds);
     }
@@ -88,6 +76,19 @@ contract GobblersTreasury is IGooSalesReceiver, Owned, ERC721TokenReceiver, ERC1
     function mintFromGoo(uint256 maxPrice) external returns (uint256 gobblerId) {
         // TODO: implement better strategy. right now it's max bidding (buy as soon as possible)
         gobblerId = gobblers.mintFromGoo({ maxPrice: maxPrice, useVirtualBalance: true });
+    }
+
+
+    /*//////////////////////////////////////////////////////////////
+                            NON_TIMELOCKED DAO FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    function removeGooAndTransfer(uint256 toWithdraw, uint256 toSend, address receiver) external onlyOwner {
+        if (toWithdraw > 0) {
+            IGobblers(gobblers).removeGoo(toSend);
+        }
+        if (toSend > 0 && receiver != address(0) && receiver != address(this)) {
+            goo.transfer(receiver, toSend);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
