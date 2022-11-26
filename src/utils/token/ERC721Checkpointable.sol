@@ -3,7 +3,7 @@
 /**
  * Base: https://github.com/nounsDAO/nouns-monorepo/blob/fe099f0df11e5e4de81cc0cd6a2186d3c82135ed/packages/nouns-contracts/contracts/base/ERC721Checkpointable.sol
  * Modifications:
- * - inherit from Gobbler's ERC721
+ * - inherit from Blob's ERC721
  * - votesToDelegate uses `_balanceOf` mapping instead of external `balanceOf`
  * - added constructor that calls super
  */

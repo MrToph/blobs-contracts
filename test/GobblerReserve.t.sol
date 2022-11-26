@@ -8,7 +8,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {stdError} from "forge-std/Test.sol";
 import {Blobs} from "../src/Blobs.sol";
 import {Goo} from "../src/Goo.sol";
-import {GobblerReserve} from "../src/utils/GobblerReserve.sol";
+import {BlobReserve} from "../src/utils/BlobReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
 import {LinkToken} from "./utils/mocks/LinkToken.sol";
@@ -16,8 +16,8 @@ import {VRFCoordinatorMock} from "chainlink/v0.8/mocks/VRFCoordinatorMock.sol";
 import {ERC721} from "solmate/tokens/ERC721.sol";
 import {LibString} from "solmate/utils/LibString.sol";
 
-/// @notice Unit test for the Gobbler Reserve contract.
-contract GobblerReserveTest is DSTestPlus {
+/// @notice Unit test for the Blob Reserve contract.
+contract BlobReserveTest is DSTestPlus {
     using LibString for uint256;
 
     Vm internal immutable vm = Vm(HEVM_ADDRESS);
@@ -29,8 +29,8 @@ contract GobblerReserveTest is DSTestPlus {
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
-    GobblerReserve internal team;
-    GobblerReserve internal community;
+    BlobReserve internal team;
+    BlobReserve internal community;
     RandProvider internal randProvider;
 
     bytes32 private keyHash;
@@ -49,12 +49,12 @@ contract GobblerReserveTest is DSTestPlus {
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
         //blobs contract will be deployed after 4 contract deploys
-        address gobblerAddress = utils.predictContractAddress(address(this), 4);
+        address blobAddress = utils.predictContractAddress(address(this), 4);
 
-        team = new GobblerReserve(Blobs(gobblerAddress), address(this));
-        community = new GobblerReserve(Blobs(gobblerAddress), address(this));
+        team = new BlobReserve(Blobs(blobAddress), address(this));
+        community = new BlobReserve(Blobs(blobAddress), address(this));
         randProvider = new ChainlinkV1RandProvider(
-            Blobs(gobblerAddress),
+            Blobs(blobAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
@@ -92,7 +92,7 @@ contract GobblerReserveTest is DSTestPlus {
 
     /// @notice Tests that a reserve can be withdrawn from.
     function testCanWithdraw() public {
-        mintGobblerToAddress(users[0], 9);
+        mintBlobToAddress(users[0], 9);
 
         blobs.mintReservedBlobs(1);
 
@@ -116,10 +116,10 @@ contract GobblerReserveTest is DSTestPlus {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Mint a number of blobs to the given address
-    function mintGobblerToAddress(address addr, uint256 num) internal {
+    function mintBlobToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
             vm.startPrank(address(blobs));
-            goo.mintForBlobs(addr, blobs.gobblerPrice());
+            goo.mintForBlobs(addr, blobs.blobPrice());
             vm.stopPrank();
 
             vm.prank(addr);

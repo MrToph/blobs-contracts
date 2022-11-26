@@ -36,17 +36,17 @@ contract BenchmarksTest is DSTest {
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
         //blobs contract will be deployed after 2 contract deploys
-        address gobblerAddress = utils.predictContractAddress(address(this), 2);
+        address blobAddress = utils.predictContractAddress(address(this), 2);
 
         randProvider = new ChainlinkV1RandProvider(
-            Blobs(gobblerAddress),
+            Blobs(blobAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
             fee
         );
 
-        goo = new Goo(gobblerAddress, address(0xDEAD));
+        goo = new Goo(blobAddress, address(0xDEAD));
 
         blobs = new Blobs(
             keccak256(abi.encodePacked(users[0])),
@@ -64,7 +64,7 @@ contract BenchmarksTest is DSTest {
 
         // approve contract
         goo.approve(address(blobs), type(uint256).max);
-        mintGobblerToAddress(address(this), 1000);
+        mintBlobToAddress(address(this), 1000);
 
         vm.warp(block.timestamp + 30 days);
 
@@ -73,15 +73,15 @@ contract BenchmarksTest is DSTest {
         vrfCoordinator.callBackWithRandomness(requestId, randomness, address(randProvider));
     }
 
-    function testGobblerPrice() public view {
-        blobs.gobblerPrice();
+    function testBlobPrice() public view {
+        blobs.blobPrice();
     }
 
-    function testMintGobbler() public {
+    function testMintBlob() public {
         blobs.mintFromGoo(type(uint256).max);
     }
 
-    function testTransferGobbler() public {
+    function testTransferBlob() public {
         blobs.transferFrom(address(this), address(0xBEEF), 1);
     }
 
@@ -93,10 +93,10 @@ contract BenchmarksTest is DSTest {
         blobs.mintReservedBlobs(1);
     }
 
-    function mintGobblerToAddress(address addr, uint256 num) internal {
+    function mintBlobToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
             vm.startPrank(address(blobs));
-            goo.mintForBlobs(addr, blobs.gobblerPrice());
+            goo.mintForBlobs(addr, blobs.blobPrice());
             vm.stopPrank();
 
             vm.prank(addr);

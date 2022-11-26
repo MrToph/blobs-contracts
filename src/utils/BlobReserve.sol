@@ -9,7 +9,7 @@ import {Blobs} from "../Blobs.sol";
 /// @author FrankieIsLost <frankie@paradigm.xyz>
 /// @author transmissions11 <t11s@paradigm.xyz>
 /// @notice Reserves blobs for an owner while keeping any goo produced.
-contract GobblerReserve is Owned {
+contract BlobReserve is Owned {
     /*//////////////////////////////////////////////////////////////
                                 ADDRESSES
     //////////////////////////////////////////////////////////////*/
@@ -19,7 +19,7 @@ contract GobblerReserve is Owned {
 
     /// @notice Sets the addresses of relevant contracts and users.
     /// @param _blobs The address of the Blobs contract.
-    /// @param _owner The address of the owner of Gobbler Reserve.
+    /// @param _owner The address of the owner of Blob Reserve.
     constructor(Blobs _blobs, address _owner) Owned(_owner) {
         blobs = _blobs;
     }

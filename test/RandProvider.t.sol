@@ -8,7 +8,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {stdError} from "forge-std/Test.sol";
 import {Blobs} from "../src/Blobs.sol";
 import {Goo} from "../src/Goo.sol";
-import {GobblerReserve} from "../src/utils/GobblerReserve.sol";
+import {BlobReserve} from "../src/utils/BlobReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
 import {LinkToken} from "./utils/mocks/LinkToken.sol";
@@ -29,8 +29,8 @@ contract RandProviderTest is DSTestPlus {
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
-    GobblerReserve internal team;
-    GobblerReserve internal community;
+    BlobReserve internal team;
+    BlobReserve internal community;
     RandProvider internal randProvider;
 
     bytes32 private keyHash;
@@ -52,12 +52,12 @@ contract RandProviderTest is DSTestPlus {
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
         //blobs contract will be deployed after 4 contract deploys
-        address gobblerAddress = utils.predictContractAddress(address(this), 4);
+        address blobAddress = utils.predictContractAddress(address(this), 4);
 
-        team = new GobblerReserve(Blobs(gobblerAddress), address(this));
-        community = new GobblerReserve(Blobs(gobblerAddress), address(this));
+        team = new BlobReserve(Blobs(blobAddress), address(this));
+        community = new BlobReserve(Blobs(blobAddress), address(this));
         randProvider = new ChainlinkV1RandProvider(
-            Blobs(gobblerAddress),
+            Blobs(blobAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
@@ -90,7 +90,7 @@ contract RandProviderTest is DSTestPlus {
     }
 
     function testRandomnessIsCorrectlyRequested() public {
-        mintGobblerToAddress(users[0], 1);
+        mintBlobToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
 
         //we expect a randomnessRequest event to be emitted once the request reaches the VRFCoordinator.
@@ -103,15 +103,15 @@ contract RandProviderTest is DSTestPlus {
 
     function testRandomnessIsFulfilled() public {
         //initially, randomness should be 0
-        (uint64 randomSeed,,,,) = blobs.gobblerRevealsData();
+        (uint64 randomSeed,,,,) = blobs.blobRevealsData();
         assertEq(randomSeed, 0);
-        mintGobblerToAddress(users[0], 1);
+        mintBlobToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
         bytes32 requestId = blobs.requestRandomSeed();
         uint256 randomness = uint256(keccak256(abi.encodePacked("seed")));
         vrfCoordinator.callBackWithRandomness(requestId, randomness, address(randProvider));
         //randomness from vrf should be set in blobs contract
-        (randomSeed,,,,) = blobs.gobblerRevealsData();
+        (randomSeed,,,,) = blobs.blobRevealsData();
         assertEq(randomSeed, uint64(randomness));
     }
 
@@ -128,7 +128,7 @@ contract RandProviderTest is DSTestPlus {
     }
 
     function testRandomnessIsNotUpgradableWithPendingSeed() public {
-        mintGobblerToAddress(users[0], 1);
+        mintBlobToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
         blobs.requestRandomSeed();
         RandProvider newProvider = new ChainlinkV1RandProvider(Blobs(address(0)), address(0), address(0), 0, 0);
@@ -137,7 +137,7 @@ contract RandProviderTest is DSTestPlus {
     }
 
     function testRandomnessIsUpgradable() public {
-        mintGobblerToAddress(users[0], 1);
+        mintBlobToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
         //initial address is correct
         assertEq(address(blobs.randProvider()), address(randProvider));
@@ -153,10 +153,10 @@ contract RandProviderTest is DSTestPlus {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Mint a number of blobs to the given address
-    function mintGobblerToAddress(address addr, uint256 num) internal {
+    function mintBlobToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
             vm.startPrank(address(blobs));
-            goo.mintForBlobs(addr, blobs.gobblerPrice());
+            goo.mintForBlobs(addr, blobs.blobPrice());
             vm.stopPrank();
 
             vm.prank(addr);

@@ -8,7 +8,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {stdError} from "forge-std/Test.sol";
 import {Blobs, FixedPointMathLib} from "../src/Blobs.sol";
 import {Goo} from "../src/Goo.sol";
-import {GobblerReserve} from "../src/utils/GobblerReserve.sol";
+import {BlobReserve} from "../src/utils/BlobReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
 import {LinkToken} from "./utils/mocks/LinkToken.sol";
@@ -18,7 +18,7 @@ import {MockERC1155} from "solmate/test/utils/mocks/MockERC1155.sol";
 import {LibString} from "solmate/utils/LibString.sol";
 import {fromDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
 
-/// @notice Unit test for Art Gobbler Contract.
+/// @notice Unit test for Art Blob Contract.
 contract BlobsTest is DSTestPlus {
     using LibString for uint256;
 
@@ -31,8 +31,8 @@ contract BlobsTest is DSTestPlus {
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
-    GobblerReserve internal team;
-    GobblerReserve internal community;
+    BlobReserve internal team;
+    BlobReserve internal community;
     RandProvider internal randProvider;
 
     bytes32 private keyHash;
@@ -51,12 +51,12 @@ contract BlobsTest is DSTestPlus {
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
         //blobs contract will be deployed after 4 contract deploys
-        address gobblerAddress = utils.predictContractAddress(address(this), 4);
+        address blobAddress = utils.predictContractAddress(address(this), 4);
 
-        team = new GobblerReserve(Blobs(gobblerAddress), address(this));
-        community = new GobblerReserve(Blobs(gobblerAddress), address(this));
+        team = new BlobReserve(Blobs(blobAddress), address(this));
+        community = new BlobReserve(Blobs(blobAddress), address(this));
         randProvider = new ChainlinkV1RandProvider(
-            Blobs(gobblerAddress),
+            Blobs(blobAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
@@ -100,7 +100,7 @@ contract BlobsTest is DSTestPlus {
         bytes32[] memory proof;
         vm.prank(user);
         vm.expectRevert(Blobs.MintStartPending.selector);
-        blobs.claimGobbler(proof);
+        blobs.claimBlob(proof);
     }
 
     /// @notice Test that you can mint from mintlist successfully.
@@ -108,8 +108,8 @@ contract BlobsTest is DSTestPlus {
         address user = users[0];
         bytes32[] memory proof;
         vm.prank(user);
-        blobs.claimGobbler(proof);
-        // verify gobbler ownership
+        blobs.claimBlob(proof);
+        // verify blob ownership
         assertEq(blobs.ownerOf(1), user);
         assertEq(blobs.balanceOf(user), 1);
     }
@@ -119,22 +119,22 @@ contract BlobsTest is DSTestPlus {
         address user = users[0];
         bytes32[] memory proof;
         vm.startPrank(user);
-        blobs.claimGobbler(proof);
+        blobs.claimBlob(proof);
 
         vm.expectRevert(Blobs.AlreadyClaimed.selector);
-        blobs.claimGobbler(proof);
+        blobs.claimBlob(proof);
     }
 
     /// @notice Test that an invalid mintlist proof reverts.
     function testMintNotInMintlist() public {
         bytes32[] memory proof;
         vm.expectRevert(Blobs.InvalidProof.selector);
-        blobs.claimGobbler(proof);
+        blobs.claimBlob(proof);
     }
 
     /// @notice Test that you can successfully mint from goo.
     function testMintFromGoo() public {
-        uint256 cost = blobs.gobblerPrice();
+        uint256 cost = blobs.blobPrice();
         vm.prank(address(blobs));
         goo.mintForBlobs(users[0], cost);
         vm.prank(users[0]);
@@ -151,7 +151,7 @@ contract BlobsTest is DSTestPlus {
 
     /// @notice Test that if mint price exceeds max it reverts.
     function testMintPriceExceededMax() public {
-        uint256 cost = blobs.gobblerPrice();
+        uint256 cost = blobs.blobPrice();
         vm.prank(address(blobs));
         goo.mintForBlobs(users[0], cost);
         vm.prank(users[0]);
@@ -159,12 +159,12 @@ contract BlobsTest is DSTestPlus {
         blobs.mintFromGoo(cost - 1);
     }
 
-    /// @notice Test that initial gobbler price is what we expect.
-    function testInitialGobblerPrice() public {
-        // Warp to the target sale time so that the gobbler price equals the target price.
+    /// @notice Test that initial blob price is what we expect.
+    function testInitialBlobPrice() public {
+        // Warp to the target sale time so that the blob price equals the target price.
         vm.warp(block.timestamp + fromDaysWadUnsafe(blobs.getTargetSaleTime(1e18)));
 
-        uint256 cost = blobs.gobblerPrice();
+        uint256 cost = blobs.blobPrice();
         assertRelApproxEq(cost, uint256(blobs.targetPrice()), 0.00001e18);
     }
 
@@ -176,7 +176,7 @@ contract BlobsTest is DSTestPlus {
 
     /// @notice Test that reserved blobs can be minted under fair circumstances.
     function testCanMintReserved() public {
-        mintGobblerToAddress(users[0], 8);
+        mintBlobToAddress(users[0], 8);
 
         blobs.mintReservedBlobs(1);
         assertEq(blobs.ownerOf(9), address(team));
@@ -187,7 +187,7 @@ contract BlobsTest is DSTestPlus {
 
     /// @notice Test multiple reserved blobs can be minted under fair circumstances.
     function testCanMintMultipleReserved() public {
-        mintGobblerToAddress(users[0], 18);
+        mintBlobToAddress(users[0], 18);
 
         blobs.mintReservedBlobs(2);
         assertEq(blobs.ownerOf(19), address(team));
@@ -200,7 +200,7 @@ contract BlobsTest is DSTestPlus {
 
     /// @notice Test minting reserved blobs fails if not enough have blobs been minted.
     function testCantMintTooFastReserved() public {
-        mintGobblerToAddress(users[0], 18);
+        mintBlobToAddress(users[0], 18);
 
         vm.expectRevert(Blobs.ReserveImbalance.selector);
         blobs.mintReservedBlobs(3);
@@ -208,7 +208,7 @@ contract BlobsTest is DSTestPlus {
 
     /// @notice Test minting reserved blobs fails one by one if not enough have blobs been minted.
     function testCantMintTooFastReservedOneByOne() public {
-        mintGobblerToAddress(users[0], 90);
+        mintBlobToAddress(users[0], 90);
 
         blobs.mintReservedBlobs(1);
         blobs.mintReservedBlobs(1);
@@ -240,7 +240,7 @@ contract BlobsTest is DSTestPlus {
 
         for (uint256 i = 0; i < numMint; ++i) {
             vm.startPrank(address(blobs));
-            uint256 price = blobs.gobblerPrice();
+            uint256 price = blobs.blobPrice();
             goo.mintForBlobs(users[0], price);
             vm.stopPrank();
             vm.prank(users[0]);
@@ -248,21 +248,21 @@ contract BlobsTest is DSTestPlus {
         }
 
         uint256 targetPrice = uint256(blobs.targetPrice());
-        uint256 finalPrice = blobs.gobblerPrice();
+        uint256 finalPrice = blobs.blobPrice();
 
         // Equal within 3 percent since num mint is rounded from true decimal amount.
         assertRelApproxEq(finalPrice, targetPrice, 0.03e18);
     }
 
-    /// @notice Pricing function should NOT revert when trying to price the last mintable gobbler.
+    /// @notice Pricing function should NOT revert when trying to price the last mintable blob.
     function testDoesNotRevertEarly() public view {
-        // This is the last gobbler we expect to mint.
+        // This is the last blob we expect to mint.
         int256 maxMintable = int256(blobs.MAX_MINTABLE()) * 1e18;
-        // This call should NOT revert, since we should have a target date for the last mintable gobbler.
+        // This call should NOT revert, since we should have a target date for the last mintable blob.
         blobs.getTargetSaleTime(maxMintable);
     }
 
-    /// @notice Pricing function should revert when trying to price beyond the last mintable gobbler.
+    /// @notice Pricing function should revert when trying to price beyond the last mintable blob.
     function testDoesRevertWhenExpected() public {
         // One plus the max number of mintable blobs.
         int256 maxMintablePlusOne = int256(blobs.MAX_MINTABLE() + 1) * 1e18;
@@ -283,22 +283,22 @@ contract BlobsTest is DSTestPlus {
 
     /// @notice Test that unrevealed URI is correct.
     function testUnrevealedUri() public {
-        uint256 gobblerCost = blobs.gobblerPrice();
+        uint256 blobCost = blobs.blobPrice();
         vm.prank(address(blobs));
-        goo.mintForBlobs(users[0], gobblerCost);
+        goo.mintForBlobs(users[0], blobCost);
         vm.prank(users[0]);
         blobs.mintFromGoo(type(uint256).max);
-        // assert gobbler not revealed after mint
+        // assert blob not revealed after mint
         assertTrue(stringEquals(blobs.tokenURI(1), blobs.UNREVEALED_URI()));
     }
 
     /// @notice Test that revealed URI is correct.
     function testRevealedUri() public {
-        mintGobblerToAddress(users[0], 1);
+        mintBlobToAddress(users[0], 1);
         // unrevealed blobs have 0 value attributes
         vm.warp(block.timestamp + 1 days);
         setRandomnessAndReveal(1, "seed");
-        (, uint64 expectedIndex) = blobs.getGobblerData(1);
+        (, uint64 expectedIndex) = blobs.getBlobData(1);
         string memory expectedURI = string(abi.encodePacked(blobs.BASE_URI(), uint256(expectedIndex).toString()));
         assertTrue(stringEquals(blobs.tokenURI(1), expectedURI));
     }
@@ -315,14 +315,14 @@ contract BlobsTest is DSTestPlus {
 
     /// @notice Cannot request random seed before 24 hours have passed from initial mint.
     function testRevealDelayInitialMint() public {
-        mintGobblerToAddress(users[0], 1);
+        mintBlobToAddress(users[0], 1);
         vm.expectRevert(Blobs.RequestTooEarly.selector);
         blobs.requestRandomSeed();
     }
 
     /// @notice Cannot reveal more blobs than remaining to be revealed.
     function testCannotRevealMoreBlobsThanRemainingToBeRevealed() public {
-        mintGobblerToAddress(users[0], 1);
+        mintBlobToAddress(users[0], 1);
 
         vm.warp(block.timestamp + 24 hours);
 
@@ -330,7 +330,7 @@ contract BlobsTest is DSTestPlus {
         uint256 randomness = uint256(keccak256(abi.encodePacked("seed")));
         vrfCoordinator.callBackWithRandomness(requestId, randomness, address(randProvider));
 
-        mintGobblerToAddress(users[0], 2);
+        mintBlobToAddress(users[0], 2);
 
         vm.expectRevert(abi.encodeWithSelector(Blobs.NotEnoughRemainingToBeRevealed.selector, 1));
         blobs.revealBlobs(2);
@@ -338,30 +338,30 @@ contract BlobsTest is DSTestPlus {
 
     /// @notice Cannot request random seed before 24 hours have passed from last reveal,
     function testRevealDelayRecurring() public {
-        // Mint and reveal first gobbler
-        mintGobblerToAddress(users[0], 1);
+        // Mint and reveal first blob
+        mintBlobToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
         setRandomnessAndReveal(1, "seed");
         // Attempt reveal before 24 hours have passed
-        mintGobblerToAddress(users[0], 1);
+        mintBlobToAddress(users[0], 1);
         vm.expectRevert(Blobs.RequestTooEarly.selector);
         blobs.requestRandomSeed();
     }
 
     /// @notice Test that seed can't be set without first revealing pending blobs.
     function testCantSetRandomSeedWithoutRevealing() public {
-        mintGobblerToAddress(users[0], 2);
+        mintBlobToAddress(users[0], 2);
         vm.warp(block.timestamp + 1 days);
         setRandomnessAndReveal(1, "seed");
         vm.warp(block.timestamp + 1 days);
-        // should fail since there is one remaining gobbler to be revealed with seed
+        // should fail since there is one remaining blob to be revealed with seed
         vm.expectRevert(Blobs.RevealsPending.selector);
         setRandomnessAndReveal(1, "seed");
     }
 
     /// @notice Test that revevals work as expected
     function testMultiReveal() public {
-        mintGobblerToAddress(users[0], 100);
+        mintBlobToAddress(users[0], 100);
         // first 100 blobs should be unrevealed
         for (uint256 i = 1; i <= 100; ++i) {
             assertEq(blobs.tokenURI(i), blobs.UNREVEALED_URI());
@@ -382,17 +382,17 @@ contract BlobsTest is DSTestPlus {
 
     function testCannotReuseSeedForReveal() public {
         // first mint and reveal.
-        mintGobblerToAddress(users[0], 1);
+        mintBlobToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
         setRandomnessAndReveal(1, "seed");
         // seed used for first reveal.
-        (uint64 firstSeed,,,,) = blobs.gobblerRevealsData();
+        (uint64 firstSeed,,,,) = blobs.blobRevealsData();
         // second mint.
-        mintGobblerToAddress(users[0], 1);
+        mintBlobToAddress(users[0], 1);
         vm.warp(block.timestamp + 1 days);
         blobs.requestRandomSeed();
         // seed we want to use for second reveal.
-        (uint64 secondSeed,,,,) = blobs.gobblerRevealsData();
+        (uint64 secondSeed,,,,) = blobs.blobRevealsData();
         // verify that we are trying to use the same seed.
         assertEq(firstSeed, secondSeed);
         // try to reveal with same seed, which should fail.
@@ -411,7 +411,7 @@ contract BlobsTest is DSTestPlus {
 
         for (uint256 i = 0; i < maxMintableWithGoo; ++i) {
             vm.warp(block.timestamp + 1 days);
-            uint256 cost = blobs.gobblerPrice();
+            uint256 cost = blobs.blobPrice();
             vm.prank(address(blobs));
             goo.mintForBlobs(users[0], cost);
             vm.prank(users[0]);
@@ -427,7 +427,7 @@ contract BlobsTest is DSTestPlus {
             vm.warp(block.timestamp + 1 days);
 
             if (i == maxMintableWithGoo) vm.expectRevert("UNDEFINED");
-            uint256 cost = blobs.gobblerPrice();
+            uint256 cost = blobs.blobPrice();
 
             vm.prank(address(blobs));
             goo.mintForBlobs(users[0], cost);
@@ -444,7 +444,7 @@ contract BlobsTest is DSTestPlus {
 
         for (uint256 i = 0; i < maxMintableWithGoo; ++i) {
             vm.warp(block.timestamp + 1 days);
-            uint256 cost = blobs.gobblerPrice();
+            uint256 cost = blobs.blobPrice();
             vm.prank(address(blobs));
             goo.mintForBlobs(users[0], cost);
             vm.prank(users[0]);
@@ -460,7 +460,7 @@ contract BlobsTest is DSTestPlus {
 
         for (uint256 i = 0; i < maxMintableWithGoo; ++i) {
             vm.warp(block.timestamp + 1 days);
-            uint256 cost = blobs.gobblerPrice();
+            uint256 cost = blobs.blobPrice();
             vm.prank(address(blobs));
             goo.mintForBlobs(users[0], cost);
             vm.prank(users[0]);
@@ -478,10 +478,10 @@ contract BlobsTest is DSTestPlus {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Mint a number of blobs to the given address
-    function mintGobblerToAddress(address addr, uint256 num) internal {
+    function mintBlobToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
             vm.startPrank(address(blobs));
-            goo.mintForBlobs(addr, blobs.gobblerPrice());
+            goo.mintForBlobs(addr, blobs.blobPrice());
             vm.stopPrank();
 
             uint256 blobsOwnedBefore = blobs.balanceOf(addr);

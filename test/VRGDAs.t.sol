@@ -38,17 +38,17 @@ contract VRGDAsTest is DSTestPlus {
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
         //blobs contract will be deployed after 2 contract deploys
-        address gobblerAddress = utils.predictContractAddress(address(this), 2);
+        address blobAddress = utils.predictContractAddress(address(this), 2);
 
         randProvider = new ChainlinkV1RandProvider(
-            Blobs(gobblerAddress),
+            Blobs(blobAddress),
             address(vrfCoordinator),
             address(linkToken),
             keyHash,
             fee
         );
 
-        goo = new Goo(gobblerAddress, address(0xDEAD));
+        goo = new Goo(blobAddress, address(0xDEAD));
 
         blobs = new Blobs(
             "root",
@@ -62,7 +62,7 @@ contract VRGDAsTest is DSTestPlus {
         );
     }
 
-    // function testFindGobblerOverflowPoint() public view {
+    // function testFindBlobOverflowPoint() public view {
     //     uint256 sold;
     //     while (true) {
     //         blobs.getPrice(0 days, sold++);
@@ -88,7 +88,7 @@ contract VRGDAsTest is DSTestPlus {
         );
     }
 
-    function testGobblerPriceStrictlyIncreasesForMostBlobs() public {
+    function testBlobPriceStrictlyIncreasesForMostBlobs() public {
         uint256 sold;
         uint256 previousPrice;
 

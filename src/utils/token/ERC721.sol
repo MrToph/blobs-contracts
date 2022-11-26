@@ -34,25 +34,25 @@ abstract contract ERC721 {
     function tokenURI(uint256 id) external view virtual returns (string memory);
 
     /*//////////////////////////////////////////////////////////////
-                         GOBBLERS/ERC721 STORAGE
+                         BLOBS/ERC721 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Struct holding gobbler data.
-    struct GobblerData {
-        // The current owner of the gobbler.
+    /// @notice Struct holding blob data.
+    struct BlobData {
+        // The current owner of the blob.
         address owner;
         // Index of token after shuffle.
         uint64 idx;
     }
 
-    /// @notice Maps gobbler ids to their data.
-    mapping(uint256 => GobblerData) public getGobblerData;
+    /// @notice Maps blob ids to their data.
+    mapping(uint256 => BlobData) public getBlobData;
     // @notice Maps an address to number of blobs owned
     mapping(address => uint256) internal _balanceOf;
     uint256 public totalSupply;
 
     function ownerOf(uint256 id) external view returns (address owner) {
-        require((owner = getGobblerData[id].owner) != address(0), "NOT_MINTED");
+        require((owner = getBlobData[id].owner) != address(0), "NOT_MINTED");
     }
 
     function balanceOf(address owner) external view returns (uint256) {
@@ -83,7 +83,7 @@ abstract contract ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     function approve(address spender, uint256 id) external {
-        address owner = getGobblerData[id].owner;
+        address owner = getBlobData[id].owner;
 
         require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
 
@@ -139,7 +139,7 @@ abstract contract ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     function _transferFrom(address from, address to, uint256 id) internal {
-        require(from == getGobblerData[id].owner, "WRONG_FROM");
+        require(from == getBlobData[id].owner, "WRONG_FROM");
 
         require(to != address(0), "INVALID_RECIPIENT");
 
@@ -151,7 +151,7 @@ abstract contract ERC721 {
 
         delete getApproved[id];
 
-        getGobblerData[id].owner = to;
+        getBlobData[id].owner = to;
 
         unchecked {
             _balanceOf[from] -= 1;
@@ -172,7 +172,7 @@ abstract contract ERC721 {
             ++totalSupply;
         }
 
-        getGobblerData[id].owner = to;
+        getBlobData[id].owner = to;
 
         emit Transfer(address(0), to, id);
     }

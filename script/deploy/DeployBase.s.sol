@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 
 import {LibRLP} from "../../test/utils/LibRLP.sol";
 
-import {GobblerReserve} from "../../src/utils/GobblerReserve.sol";
+import {BlobReserve} from "../../src/utils/BlobReserve.sol";
 import {RandProvider} from "../../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../../src/utils/rand/ChainlinkV1RandProvider.sol";
 
@@ -21,12 +21,12 @@ abstract contract DeployBase is Script {
     address private immutable linkToken;
     bytes32 private immutable chainlinkKeyHash;
     uint256 private immutable chainlinkFee;
-    string private gobblerBaseUri;
-    string private gobblerUnrevealedUri;
+    string private blobBaseUri;
+    string private blobUnrevealedUri;
 
     // Deploy addresses.
-    GobblerReserve public teamReserve;
-    GobblerReserve public communityReserve;
+    BlobReserve public teamReserve;
+    BlobReserve public communityReserve;
     Goo public goo;
     RandProvider public randProvider;
     Blobs public blobs;
@@ -39,8 +39,8 @@ abstract contract DeployBase is Script {
         address _linkToken,
         bytes32 _chainlinkKeyHash,
         uint256 _chainlinkFee,
-        string memory _gobblerBaseUri,
-        string memory _gobblerUnrevealedUri
+        string memory _blobBaseUri,
+        string memory _blobUnrevealedUri
     ) {
         teamColdWallet = _teamColdWallet;
         merkleRoot = _merkleRoot;
@@ -49,8 +49,8 @@ abstract contract DeployBase is Script {
         linkToken = _linkToken;
         chainlinkKeyHash = _chainlinkKeyHash;
         chainlinkFee = _chainlinkFee;
-        gobblerBaseUri = _gobblerBaseUri;
-        gobblerUnrevealedUri = _gobblerUnrevealedUri;
+        blobBaseUri = _blobBaseUri;
+        blobUnrevealedUri = _blobUnrevealedUri;
     }
 
     function run() external {
@@ -58,13 +58,13 @@ abstract contract DeployBase is Script {
 
         // Precomputed contract addresses, based on contract deploy nonces.
         // tx.origin is the address who will actually broadcast the contract creations below.
-        address gobblerAddress = LibRLP.computeAddress(tx.origin, vm.getNonce(tx.origin) + 3);
+        address blobAddress = LibRLP.computeAddress(tx.origin, vm.getNonce(tx.origin) + 3);
 
         // Deploy team and community reserves, owned by cold wallet.
-        teamReserve = new GobblerReserve(Blobs(gobblerAddress), teamColdWallet);
-        communityReserve = new GobblerReserve(Blobs(gobblerAddress), teamColdWallet);
+        teamReserve = new BlobReserve(Blobs(blobAddress), teamColdWallet);
+        communityReserve = new BlobReserve(Blobs(blobAddress), teamColdWallet);
         randProvider = new ChainlinkV1RandProvider(
-            Blobs(gobblerAddress),
+            Blobs(blobAddress),
             vrfCoordinator,
             linkToken,
             chainlinkKeyHash,
@@ -74,7 +74,7 @@ abstract contract DeployBase is Script {
         // Get goo contract.
         goo = Goo(address(0xDEAD)); // TODO: get deployed Goo here
 
-        // Deploy gobblers contract,
+        // Deploy blobs contract,
         blobs = new Blobs(
             merkleRoot,
             mintStart,
@@ -82,8 +82,8 @@ abstract contract DeployBase is Script {
             address(teamReserve),
             address(communityReserve),
             randProvider,
-            gobblerBaseUri,
-            gobblerUnrevealedUri
+            blobBaseUri,
+            blobUnrevealedUri
         );
 
         vm.stopBroadcast();

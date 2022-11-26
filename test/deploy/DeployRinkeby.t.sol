@@ -26,8 +26,8 @@ contract DeployRinkebyTest is DSTestPlus {
         bytes32[] memory proof;
         Blobs blobs = deployScript.blobs();
         vm.prank(user);
-        blobs.claimGobbler(proof);
-        // Verify gobbler ownership.
+        blobs.claimBlob(proof);
+        // Verify blob ownership.
         assertEq(blobs.ownerOf(1), user);
     }
 
@@ -43,7 +43,7 @@ contract DeployRinkebyTest is DSTestPlus {
     /// @notice Test URIs are correctly set.
     function testURIs() public {
         Blobs blobs = deployScript.blobs();
-        assertEq(blobs.BASE_URI(), deployScript.gobblerBaseUri());
-        assertEq(blobs.UNREVEALED_URI(), deployScript.gobblerUnrevealedUri());
+        assertEq(blobs.BASE_URI(), deployScript.blobBaseUri());
+        assertEq(blobs.UNREVEALED_URI(), deployScript.blobUnrevealedUri());
     }
 }
