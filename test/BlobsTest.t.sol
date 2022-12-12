@@ -165,6 +165,8 @@ contract BlobsTest is DSTestPlus {
         vm.prank(users[0]);
         blobs.mintFromGoo(type(uint256).max);
         assertEq(blobs.ownerOf(1), users[0]);
+        // sale proceedings go to treasury and are deposited into goo tank
+        assertEq(gobblers.gooBalance(address(treasury)), cost);
     }
 
     /// @notice Test that trying to mint with insufficient balance reverts.
