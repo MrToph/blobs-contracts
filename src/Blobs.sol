@@ -21,7 +21,7 @@ import {LogisticVRGDA} from "VRGDAs/LogisticVRGDA.sol";
 import {RandProvider} from "./utils/rand/RandProvider.sol";
 import {ERC721Checkpointable} from "./utils/token/ERC721Checkpointable.sol";
 
-import {Goo} from "./Goo.sol";
+import {Goo} from "art-gobblers/Goo.sol";
 import {IGooSalesReceiver} from "./IGooSalesReceiver.sol";
 
 /// @title Blobs NFT

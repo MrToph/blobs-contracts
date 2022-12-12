@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {Goo} from "art-gobblers.git/Goo.sol";
-import {ArtGobblers} from "art-gobblers.git/ArtGobblers.sol";
-import {Pages} from "art-gobblers.git/Pages.sol";
-import {RandProvider} from "art-gobblers.git/utils/rand/RandProvider.sol";
+
+import {Goo} from "art-gobblers/Goo.sol";
+import {ArtGobblers} from "art-gobblers/ArtGobblers.sol";
+import {Pages} from "art-gobblers/Pages.sol";
+import {RandProvider} from "art-gobblers/utils/rand/RandProvider.sol";
 
 contract MockArtGobblers is ArtGobblers {
     constructor(
@@ -16,11 +17,11 @@ contract MockArtGobblers is ArtGobblers {
         Pages _pages,
         address _team,
         address _community,
-        RandProvider _randProvider,
+        address _randProvider,
         // URIs:
         string memory _baseUri,
         string memory _unrevealedUri
-    ) ArtGobblers(_merkleRoot, _mintStart, _goo, _pages, _team, _community, _randProvider, _baseUri, _unrevealedUri) {}
+    ) ArtGobblers(_merkleRoot, _mintStart, _goo, _pages, _team, _community, RandProvider(_randProvider), _baseUri, _unrevealedUri, bytes32(0)) {}
 
     /// acts like calling `claimGobbler` + `revealGobblers(1)` + sets custom emission multiple
     function mintGobblerExposed(address to, uint32 emissionMultiple) external returns (uint256 gobblerId) {

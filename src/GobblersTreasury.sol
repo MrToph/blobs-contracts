@@ -9,7 +9,7 @@ import {IGooSalesReceiver} from "./IGooSalesReceiver.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LibGOO} from "goo-issuance/LibGOO.sol";
 
-import {Goo} from "./Goo.sol";
+import {Goo} from "art-gobblers/Goo.sol";
 
 /// @title Blobs NFT
 /// @notice An experimental decentralized art companion project to ArtBlobs
@@ -31,7 +31,7 @@ contract GobblersTreasury is IGooSalesReceiver, Owned, ERC721TokenReceiver, ERC1
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
     error TimeLocked();
-    error MintMintNotEnoughGoo(uint256 currentGoo, uint256 requiredGoo);
+    error MintNotEnoughGoo(uint256 currentGoo, uint256 requiredGoo);
     error MintNotProfitable(uint256 gooNoMint, uint256 gooWithMint);
 
     /*//////////////////////////////////////////////////////////////

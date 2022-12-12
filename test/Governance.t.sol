@@ -6,7 +6,7 @@ import {Test, stdError} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 import {Utilities} from "./utils/Utilities.sol";
 import {Blobs, FixedPointMathLib} from "../src/Blobs.sol";
-import {Goo} from "../src/Goo.sol";
+import {Goo} from "art-gobblers/Goo.sol";
 import {BlobReserve} from "../src/utils/BlobReserve.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
@@ -107,7 +107,7 @@ contract GovernanceTest is Test {
 
         // send some goo to timelock
         vm.prank(address(blobs));
-        goo.mintForBlobs(address(timelock), 1000e18);
+        goo.mintForGobblers(address(timelock), 1000e18);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -198,7 +198,7 @@ contract GovernanceTest is Test {
     function _mintBlobToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
             vm.startPrank(address(blobs));
-            goo.mintForBlobs(addr, blobs.blobPrice());
+            goo.mintForGobblers(addr, blobs.blobPrice());
             vm.stopPrank();
 
             uint256 blobsOwnedBefore = blobs.balanceOf(addr);

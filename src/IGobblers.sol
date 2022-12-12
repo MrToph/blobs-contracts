@@ -29,4 +29,6 @@ interface IGobblers is IERC721 {
     }
 
     function getUserData(address owner) external view returns (UserData memory);
+    function getUserEmissionMultiple(address user) external view returns (uint256);
+    function gobblerPrice() external view returns (uint256);
 }
