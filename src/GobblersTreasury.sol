@@ -41,7 +41,7 @@ contract GobblersTreasury is IGooSalesReceiver, Owned, ERC721TokenReceiver, ERC1
     // initialize owner to the DAO treasury upon deployment
     constructor(address _treasury, address _gobblers) Owned(_treasury) {
         unlockTimestamp = uint40(block.timestamp) + 180 days;
-        mintAveragingDays = 7e18;
+        mintAveragingDays = 30e18; // if we mint now and end up with more goo in a month (on average), mint it
         gobblers = IGobblers(_gobblers);
         goo = IERC20(IGobblers(_gobblers).goo());
     }
@@ -78,33 +78,10 @@ contract GobblersTreasury is IGooSalesReceiver, Owned, ERC721TokenReceiver, ERC1
         gobblerId = gobblers.mintLegendaryGobbler(gobblerIds);
     }
 
-    function mintFromGoo() external returns (uint256 gobblerId) {
-        uint256 averagingDays = mintAveragingDays;
-        uint256 currentMintPrice = gobblers.gobblerPrice();
-        uint256 currentGoo = gobblers.gooBalance(address(this));
-        uint256 currentMultiple = gobblers.getUserEmissionMultiple(address(this));
-        uint256 expectedMintMultiple = 7;
+    function mintGobbler() external returns (uint256 gobblerId) {
+        checkMintGobbler();
 
-        if(currentGoo < currentMintPrice) {
-            revert MintNotEnoughGoo(currentGoo, currentMintPrice);
-        }
-
-        uint256 gooBalanceWithMint = LibGOO.computeGOOBalance(
-            currentMultiple + expectedMintMultiple,
-            currentGoo - currentMintPrice,
-            averagingDays
-        );
-        uint256 gooBalanceNoMint = LibGOO.computeGOOBalance(
-            currentMultiple,
-            currentGoo,
-            averagingDays
-        );
-
-        if(gooBalanceWithMint < gooBalanceNoMint) {
-            revert MintNotProfitable(gooBalanceNoMint, gooBalanceWithMint);
-        }
-
-        gobblerId = gobblers.mintFromGoo({ maxPrice: currentMintPrice, useVirtualBalance: true });
+        gobblerId = gobblers.mintFromGoo({ maxPrice: type(uint256).max, useVirtualBalance: true });
     }
 
 
@@ -145,5 +122,38 @@ contract GobblersTreasury is IGooSalesReceiver, Owned, ERC721TokenReceiver, ERC1
         timeLocked
     {
         gobblers.safeTransferFrom(from, to, id, data);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    function checkMintGobbler() public view {
+        uint256 averagingDays = mintAveragingDays;
+        uint256 currentMintPrice = gobblers.gobblerPrice();
+        uint256 currentGoo = gobblers.gooBalance(address(this));
+        uint256 currentMultiple = gobblers.getUserEmissionMultiple(address(this));
+        uint256 expectedMintMultiple = 7; // 7.329 in reality, but we round down to 7 because we need integers and we ignore the time of 0 multiplier from unrevleaed to reveal
+
+        if(currentGoo < currentMintPrice) {
+            revert MintNotEnoughGoo(currentGoo, currentMintPrice);
+        }
+
+        uint256 gooBalanceWithMint = LibGOO.computeGOOBalance(
+            currentMultiple + expectedMintMultiple,
+            currentGoo - currentMintPrice,
+            averagingDays
+        );
+        uint256 gooBalanceNoMint = LibGOO.computeGOOBalance(
+            currentMultiple,
+            currentGoo,
+            averagingDays
+        );
+
+        // averagingDays = type(uint80).max is max-bid, where the treasury will always mint if it can.
+        // because if `t` is large only quadratic term is relevant and
+        // (M + newGobbler) * t^2 >= M * t^2 will almost always be true
+        if(gooBalanceWithMint < gooBalanceNoMint) {
+            revert MintNotProfitable(gooBalanceNoMint, gooBalanceWithMint);
+        }
     }
 }
