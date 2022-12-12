@@ -1,6 +1,6 @@
 [profile.default]
 solc = "0.8.13"
-optimizer_runs = 1000000
+optimizer_runs = 10000
 bytecode_hash = "none"
 no_match_test = "FFI|LongRunning"
 
@@ -13,3 +13,11 @@ runs = 10000
 [profile.ffi]
 ffi = true
 no_match_test = "LongRunning"
+
+[rpc_endpoints]
+mainnet = "${ETHEREUM_RPC_URL}"
+goerli = "${GOERLI_RPC_URL}"
+local = "http://localhost:8545"
+
+[etherscan]
+mainnet = { key = "${ETHERSCAN_API_KEY}" }
