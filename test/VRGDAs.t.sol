@@ -6,7 +6,7 @@ import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {Blobs} from "../src/Blobs.sol";
-import {Goo} from "../src/Goo.sol";
+import {Goo} from "art-gobblers/Goo.sol";
 import {LinkToken} from "./utils/mocks/LinkToken.sol";
 import {VRFCoordinatorMock} from "chainlink/v0.8/mocks/VRFCoordinatorMock.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";

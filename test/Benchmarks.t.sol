@@ -8,7 +8,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {Blobs} from "../src/Blobs.sol";
 import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
-import {Goo} from "../src/Goo.sol";
+import {Goo} from "art-gobblers/Goo.sol";
 import {LinkToken} from "./utils/mocks/LinkToken.sol";
 import {VRFCoordinatorMock} from "chainlink/v0.8/mocks/VRFCoordinatorMock.sol";
 
@@ -60,7 +60,7 @@ contract BenchmarksTest is DSTest {
         );
 
         vm.prank(address(blobs));
-        goo.mintForBlobs(address(this), type(uint192).max);
+        goo.mintForGobblers(address(this), type(uint192).max);
 
         // approve contract
         goo.approve(address(blobs), type(uint256).max);
@@ -96,7 +96,7 @@ contract BenchmarksTest is DSTest {
     function mintBlobToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
             vm.startPrank(address(blobs));
-            goo.mintForBlobs(addr, blobs.blobPrice());
+            goo.mintForGobblers(addr, blobs.blobPrice());
             vm.stopPrank();
 
             vm.prank(addr);

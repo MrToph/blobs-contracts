@@ -23,3 +23,6 @@
 	path = lib/openzeppelin-contracts
 	url = https://github.com/openzeppelin/openzeppelin-contracts
 	branch = v4.8.0
+[submodule "lib/art-gobblers"]
+	path = lib/art-gobblers
+	url = https://github.com/artgobblers/art-gobblers

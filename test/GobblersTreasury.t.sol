@@ -5,23 +5,18 @@ import {Vm} from "forge-std/Vm.sol";
 import {Test, stdError} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 import {Utilities} from "./utils/Utilities.sol";
-import {Blobs, FixedPointMathLib} from "../src/Blobs.sol";
-import {GobblersTreasury} from "../src/GobblersTreasury.sol";
-import {Goo} from "../src/Goo.sol";
-import {BlobReserve} from "../src/utils/BlobReserve.sol";
-import {RandProvider} from "../src/utils/rand/RandProvider.sol";
-import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
-import {LinkToken} from "./utils/mocks/LinkToken.sol";
-import {VRFCoordinatorMock} from "chainlink/v0.8/mocks/VRFCoordinatorMock.sol";
 import {ERC721} from "solmate/tokens/ERC721.sol";
 import {MockERC1155} from "solmate/test/utils/mocks/MockERC1155.sol";
 import {LibString} from "solmate/utils/LibString.sol";
 import {fromDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
 
-import {NounsDAOExecutor} from "nouns-monorepo/packages/nouns-contracts/contracts/governance/NounsDAOExecutor.sol";
-import {NounsDAOProxyV2} from "nouns-monorepo/packages/nouns-contracts/contracts/governance/NounsDAOProxyV2.sol";
-import {NounsDAOLogicV2} from "nouns-monorepo/packages/nouns-contracts/contracts/governance/NounsDAOLogicV2.sol";
-import "nouns-monorepo/packages/nouns-contracts/contracts/governance/NounsDAOInterfaces.sol";
+import {Goo} from "art-gobblers/Goo.sol";
+import {Pages} from "art-gobblers/Pages.sol";
+
+import {MockArtGobblers} from "./MockArtGobblers.sol";
+import {GobblersTreasury} from "../src/GobblersTreasury.sol";
+import {BlobReserve} from "../src/utils/BlobReserve.sol";
+import {RandProvider} from "../src/utils/rand/RandProvider.sol";
 
 enum Support {
     Against,
@@ -36,30 +31,12 @@ contract GobblersTreasuryTests is Test {
     Utilities internal utils;
     address payable[] internal users;
 
-    Blobs internal blobs;
-    VRFCoordinatorMock internal vrfCoordinator;
-    LinkToken internal linkToken;
-    Goo internal goo;
     address internal constant foundersMsig = address(0x13371338);
-    RandProvider internal randProvider;
 
-    // for VRF
-    bytes32 private keyHash;
-    uint256 private fee;
-
-    uint256[] ids;
-
-    // Governance
-    uint256 constant executionDelaySeconds = 3 days; // earliest eta a successful execution can be queued in timelock.queueTransaction. I guess this is an additional safety measure for the vetoer to call veto. time for everyone to sign an msig
-    // Nouns uses delay of 14400 = 2 days @ 12 seconds per block
-    uint256 constant votingDelayBlocks = 2 days / 12; // # blocks after proposing when users can start voting
-    // Nouns uses delay of 36000 = 5 days @ 12 seconds per block
-    uint256 constant votingPeriodBlocks = 5 days / 12; // # blocks users can vote on proposals
-    NounsDAOExecutor private timelock;
-    NounsDAOLogicV2 private proxy;
-
-    address private gobblers;
+    Goo internal goo;
+    MockArtGobblers private gobblers;
     GobblersTreasury private treasury;
+    address internal constant timelock = address(0x2007);
 
     /*//////////////////////////////////////////////////////////////
                                   SETUP
@@ -68,164 +45,148 @@ contract GobblersTreasuryTests is Test {
     function setUp() public {
         utils = new Utilities();
         users = utils.createUsers(5);
-        linkToken = new LinkToken();
-        vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
-
-        //blobs contract will be deployed after 4 contract deploys
-        address blobAddress = utils.predictContractAddress(address(this), 2);
-
-        randProvider = new ChainlinkV1RandProvider(
-            Blobs(blobAddress),
-            address(vrfCoordinator),
-            address(linkToken),
-            keyHash,
-            fee
-        );
 
         goo = new Goo(
-            // Blobs:
+            // ArtGobblers:
             utils.predictContractAddress(address(this), 1),
             // Pages:
             address(0xDEAD)
         );
 
-        blobs = new Blobs(
-            keccak256(abi.encodePacked(users[0])),
+        gobblers = new MockArtGobblers(
+            keccak256(abi.encodePacked(address(this))), // merkle tree = this
             block.timestamp,
             goo,
-            // team blobs directly go to team, community blobs too and are to be distributed
-            address(foundersMsig),
-            address(foundersMsig),
-            randProvider,
+            Pages(address(0xDEAD)), // pages
+            address(0xDEAD), // team
+            address(0xDEAD), // community
+            address(this), // randProvider
             "base",
             ""
         );
+        treasury = new GobblersTreasury(
+            address(timelock),
+            address(gobblers)
+        );
 
-        _deployGovernance();
-
-        // treasury = new GobblersTreasury(
-        //     address(gobblers), // TODO: add MockGobblers deployment
-        //     address(timelock)
-        // );
-
-        // users approve contract
-        for (uint256 i = 0; i < users.length; ++i) {
-            vm.prank(users[i]);
-            goo.approve(address(blobs), type(uint256).max);
-        }
-
-        // send some goo to timelock
-        vm.prank(address(blobs));
-        goo.mintForBlobs(address(timelock), 1000e18);
     }
 
     /*//////////////////////////////////////////////////////////////
                                MINT TESTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Test that you can mint from mintlist successfully.
-    function testGobblersTreasury() public {
+    function testNoMintGobblerMaxBid() public {
+        vm.prank(timelock);
+        treasury.setMintAveragingDays(type(uint80).max);
+
+        uint256 gobblerPrice = gobblers.gobblerPrice();
+        vm.prank(address(gobblers));
+        goo.mintForGobblers(address(treasury), gobblerPrice - 1);
+        treasury.addGoo();
+
+
+        vm.expectRevert(abi.encodeWithSelector(GobblersTreasury.MintNotEnoughGoo.selector, gobblerPrice - 1, gobblerPrice));
+        treasury.mintGobbler();
+    }
+
+    function testMintGobblerMaxBid() public {
+        vm.prank(timelock);
+        treasury.setMintAveragingDays(type(uint80).max);
+
+        uint256 gobblerPrice = gobblers.gobblerPrice();
+        vm.prank(address(gobblers));
+        goo.mintForGobblers(address(treasury), gobblerPrice);
+        treasury.addGoo();
+
+        treasury.mintGobbler();
+        uint256 gobblersMinted = gobblers.balanceOf(address(treasury));
+        assertEq(gobblersMinted, 1, "Gobblers minted");
+        assertEq(gobblers.gooBalance(address(treasury)), 0, "did not use up all goo");
+    }
+
+    function testNoMintGobblerTimeAveraged() public {
+        gobblers.mintGobblerExposed(address(treasury), 100); // multiple of 100
+        vm.prank(timelock);
+        treasury.setMintAveragingDays(49e18);
+
+        uint256 gobblerPrice = gobblers.gobblerPrice();
+        console.log(gobblerPrice);
+        assertEq(gobblerPrice, 73.013654753028651285e18, "unexpected gobbler start mint price");
+
+        vm.prank(address(gobblers));
+        goo.mintForGobblers(address(treasury), gobblerPrice);
+        treasury.addGoo();
+
+        vm.expectRevert(abi.encodeWithSelector(GobblersTreasury.MintNotProfitable.selector, 0xd9ce521aee25f06e43d, 0xd99bd3545182bd30000));
+        treasury.mintGobbler();
+    }
+
+    function testMintGobblerTimeAveraged() public {
+        gobblers.mintGobblerExposed(address(treasury), 100); // multiple of 100
+        vm.prank(timelock);
+        // we end up with more goo after 50 days if we mint now and have a position of (100 + X multiple, 0 goo) compared to holding the initial position (100, gobblerPrice goo)
+        treasury.setMintAveragingDays(50e18);
+
+        uint256 gobblerPrice = gobblers.gobblerPrice();
+        console.log(gobblerPrice);
+        assertEq(gobblerPrice, 73.013654753028651285e18, "unexpected gobbler start mint price");
+
+        vm.prank(address(gobblers));
+        goo.mintForGobblers(address(treasury), gobblerPrice);
+        treasury.addGoo();
+
+        treasury.mintGobbler();
+        uint256 gobblersMinted = gobblers.balanceOf(address(treasury));
+        assertEq(gobblersMinted, 2, "Gobblers minted");
+    }
+
+    function testMintLegendaryGobbler() public {
+        vm.prank(timelock);
+        treasury.setMintAveragingDays(type(uint80).max);
+
+        vm.prank(address(gobblers));
+        goo.mintForGobblers(address(treasury), 1e50 * 1e18);
+        treasury.addGoo();
+
+        // mint 581 to make legendary gobbler spawn
+        uint256[] memory gobblerIds = new uint256[](600);
+        for(uint256 i = 0; i < gobblerIds.length; i++) {
+            gobblerIds[i] = treasury.mintGobbler();
+        }
+
+        // just sacrifice legendaryGobblerPrice of them
+        uint256 legendaryGobblerPrice = gobblers.legendaryGobblerPrice();
+        gobblerIds = new uint256[](legendaryGobblerPrice);
+        for(uint256 i = 0; i < legendaryGobblerPrice; i++) {
+            gobblerIds[i] = 100 + i;
+        }
+
+        uint256 legendaryGobblerId = treasury.mintLegendaryGobbler(gobblerIds);
+
+        assertEq(legendaryGobblerId, 9991, "!legendary gobbler id");
+        assertEq(gobblers.ownerOf(legendaryGobblerId), address(treasury), "!legendary gobbler owner");
+        vm.expectRevert("NOT_MINTED");
+        gobblers.ownerOf(100);
+        assertEq(gobblers.ownerOf(99), address(treasury), "!treasury gobbler owner");
     }
 
 
     /*//////////////////////////////////////////////////////////////
                                  HELPERS
     //////////////////////////////////////////////////////////////*/
-    function _createProposal(
-        address target,
-        uint256 value,
-        string memory signature,
-        bytes memory data,
-        string memory description
-    )
-        internal
-        pure
-        returns (
-            address[] memory targets,
-            uint256[] memory values,
-            string[] memory signatures,
-            bytes[] memory calldatas,
-            string memory descript
-        )
-    {
-        targets = new address[](1);
-        values = new uint256[](1);
-        signatures = new string[](1);
-        calldatas = new bytes[](1);
-        targets[0] = target;
-        values[0] = value;
-        signatures[0] = signature;
-        calldatas[0] = data;
-        descript = description;
-    }
-
-    /// @notice Mint a number of blobs to the given address
-    function _mintBlobToAddress(address addr, uint256 num) internal {
+        /// @notice Mint a number of gobblers to the given address
+    function mintGobblerToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
-            vm.startPrank(address(blobs));
-            goo.mintForBlobs(addr, blobs.blobPrice());
+            vm.startPrank(address(gobblers));
+            goo.mintForGobblers(addr, gobblers.gobblerPrice());
             vm.stopPrank();
 
-            uint256 blobsOwnedBefore = blobs.balanceOf(addr);
+            uint256 gobblersOwnedBefore = gobblers.balanceOf(addr);
 
             vm.prank(addr);
-            // note: transfers goo from caller to Blobs.team
-            blobs.mintFromGoo(type(uint256).max);
+            gobblers.mintFromGoo(type(uint256).max, false);
 
-            assertEq(blobs.balanceOf(addr), blobsOwnedBefore + 1);
+            assertEq(gobblers.balanceOf(addr), gobblersOwnedBefore + 1);
         }
-    }
-
-    function _deployGovernance() internal {
-        timelock = new NounsDAOExecutor({admin_: address(foundersMsig), delay_: executionDelaySeconds});
-
-        // https://etherscan.io/address/0x6f3e6272a167e8accb32072d08e0957f9c79223d#readProxyContract
-        // 1000,1500,1_000_000
-        NounsDAOStorageV2.DynamicQuorumParams memory dynamicQuorumParams = NounsDAOStorageV2.DynamicQuorumParams({
-            minQuorumVotesBPS: 0.1000e4,
-            maxQuorumVotesBPS: 0.1500e4,
-            quorumCoefficient: 1e6
-        });
-
-        NounsDAOLogicV2 implementation = new NounsDAOLogicV2();
-
-        // its constructor already calls implemenation.initialize(args)
-        NounsDAOProxyV2 p = new NounsDAOProxyV2({
-            timelock_: address(timelock),
-            nouns_: address(blobs),
-            vetoer_: address(foundersMsig),
-            admin_: address(foundersMsig), // can set voting delays, voting periods, thresholds
-            implementation_: address(implementation),
-            votingPeriod_: votingPeriodBlocks,
-            votingDelay_: votingDelayBlocks,
-            proposalThresholdBPS_: 25, // proposalThresholdBPS * totalSupply / 1e4 required of msg.sender to _propose_
-            dynamicQuorumParams_: dynamicQuorumParams
-        });
-
-        proxy = NounsDAOLogicV2(payable(p)); // treat the proxy as a NounsDAOLogicV2
-
-        // change timelock's admin from founders' msig to governance contract
-        string memory signature = "setPendingAdmin(address)"; // signature must be provided in string format as it's hashed in executeTransaction
-        vm.startPrank(address(foundersMsig));
-        uint256 eta = block.timestamp + executionDelaySeconds;
-        timelock.queueTransaction({
-            target: address(timelock),
-            value: 0,
-            signature: signature,
-            data: abi.encode(address(proxy)),
-            eta: eta
-        });
-        vm.warp(eta);
-        timelock.executeTransaction({
-            target: address(timelock),
-            value: 0,
-            signature: signature,
-            data: abi.encode(address(proxy)),
-            eta: eta
-        });
-        vm.stopPrank();
-
-        vm.prank(address(proxy));
-        timelock.acceptAdmin();
     }
 }

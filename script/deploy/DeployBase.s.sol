@@ -9,7 +9,7 @@ import {BlobReserve} from "../../src/utils/BlobReserve.sol";
 import {RandProvider} from "../../src/utils/rand/RandProvider.sol";
 import {ChainlinkV1RandProvider} from "../../src/utils/rand/ChainlinkV1RandProvider.sol";
 
-import {Goo} from "../../src/Goo.sol";
+import {Goo} from "art-gobblers/Goo.sol";
 import {Blobs} from "../../src/Blobs.sol";
 
 abstract contract DeployBase is Script {

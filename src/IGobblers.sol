@@ -14,7 +14,9 @@ interface IGobblers is IERC721 {
     function removeGoo(uint256 gooAmount) external;
 
     function mintLegendaryGobbler(uint256[] calldata gobblerIds) external returns (uint256 gobblerId);
+    function legendaryGobblerPrice() external view returns (uint256);
     function mintFromGoo(uint256 maxPrice, bool useVirtualBalance) external returns (uint256 gobblerId);
+    function gobblerPrice() external view returns (uint256);
 
     /// @notice Struct holding data relevant to each user's account.
     struct UserData {
@@ -29,4 +31,5 @@ interface IGobblers is IERC721 {
     }
 
     function getUserData(address owner) external view returns (UserData memory);
+    function getUserEmissionMultiple(address user) external view returns (uint256);
 }

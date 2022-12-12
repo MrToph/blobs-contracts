@@ -6,17 +6,23 @@ import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {stdError} from "forge-std/Test.sol";
-import {Blobs, FixedPointMathLib} from "../src/Blobs.sol";
-import {Goo} from "../src/Goo.sol";
-import {BlobReserve} from "../src/utils/BlobReserve.sol";
-import {RandProvider} from "../src/utils/rand/RandProvider.sol";
-import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
-import {LinkToken} from "./utils/mocks/LinkToken.sol";
 import {VRFCoordinatorMock} from "chainlink/v0.8/mocks/VRFCoordinatorMock.sol";
 import {ERC721} from "solmate/tokens/ERC721.sol";
 import {MockERC1155} from "solmate/test/utils/mocks/MockERC1155.sol";
 import {LibString} from "solmate/utils/LibString.sol";
 import {fromDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
+
+import {Pages} from "art-gobblers/Pages.sol";
+import {ArtGobblers} from "art-gobblers/ArtGobblers.sol";
+import {Goo} from "art-gobblers/Goo.sol";
+
+import {Blobs, FixedPointMathLib} from "../src/Blobs.sol";
+import {GobblersTreasury} from "../src/GobblersTreasury.sol";
+import {BlobReserve} from "../src/utils/BlobReserve.sol";
+import {RandProvider} from "../src/utils/rand/RandProvider.sol";
+import {ChainlinkV1RandProvider} from "../src/utils/rand/ChainlinkV1RandProvider.sol";
+import {LinkToken} from "./utils/mocks/LinkToken.sol";
+import {MockArtGobblers} from "./MockArtGobblers.sol";
 
 /// @notice Unit test for Art Blob Contract.
 contract BlobsTest is DSTestPlus {
@@ -31,9 +37,11 @@ contract BlobsTest is DSTestPlus {
     VRFCoordinatorMock internal vrfCoordinator;
     LinkToken internal linkToken;
     Goo internal goo;
+    MockArtGobblers internal gobblers;
     BlobReserve internal team;
-    BlobReserve internal community;
+    GobblersTreasury internal treasury;
     RandProvider internal randProvider;
+    address internal constant timelock = address(0x2007);
 
     bytes32 private keyHash;
     uint256 private fee;
@@ -50,11 +58,10 @@ contract BlobsTest is DSTestPlus {
         linkToken = new LinkToken();
         vrfCoordinator = new VRFCoordinatorMock(address(linkToken));
 
-        //blobs contract will be deployed after 4 contract deploys
-        address blobAddress = utils.predictContractAddress(address(this), 4);
+        //blobs contract will be deployed after 5 contract deploys
+        address blobAddress = utils.predictContractAddress(address(this), 5);
 
         team = new BlobReserve(Blobs(blobAddress), address(this));
-        community = new BlobReserve(Blobs(blobAddress), address(this));
         randProvider = new ChainlinkV1RandProvider(
             Blobs(blobAddress),
             address(vrfCoordinator),
@@ -64,18 +71,35 @@ contract BlobsTest is DSTestPlus {
         );
 
         goo = new Goo(
-            // Blobs:
+            // ArtGobblers:
             utils.predictContractAddress(address(this), 1),
             // Pages:
             address(0xDEAD)
         );
+
+        gobblers = new MockArtGobblers(
+            keccak256(abi.encodePacked(address(this))), // merkle tree = this
+            block.timestamp,
+            goo,
+            Pages(address(0xDEAD)), // pages
+            address(0xDEAD), // team
+            address(0xDEAD), // community
+            address(this), // randProvider
+            "base",
+            ""
+        );
+        treasury = new GobblersTreasury(
+            address(timelock),
+            address(gobblers)
+        );
+        address salesReceiver = address(treasury);
 
         blobs = new Blobs(
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
             address(team),
-            address(community),
+            salesReceiver,
             randProvider,
             "base",
             ""
@@ -135,11 +159,14 @@ contract BlobsTest is DSTestPlus {
     /// @notice Test that you can successfully mint from goo.
     function testMintFromGoo() public {
         uint256 cost = blobs.blobPrice();
-        vm.prank(address(blobs));
-        goo.mintForBlobs(users[0], cost);
+        vm.prank(address(gobblers));
+        goo.mintForGobblers(users[0], cost);
+
         vm.prank(users[0]);
         blobs.mintFromGoo(type(uint256).max);
         assertEq(blobs.ownerOf(1), users[0]);
+        // sale proceedings go to treasury and are deposited into goo tank
+        assertEq(gobblers.gooBalance(address(treasury)), cost);
     }
 
     /// @notice Test that trying to mint with insufficient balance reverts.
@@ -152,8 +179,9 @@ contract BlobsTest is DSTestPlus {
     /// @notice Test that if mint price exceeds max it reverts.
     function testMintPriceExceededMax() public {
         uint256 cost = blobs.blobPrice();
-        vm.prank(address(blobs));
-        goo.mintForBlobs(users[0], cost);
+        vm.prank(address(gobblers));
+        goo.mintForGobblers(users[0], cost);
+
         vm.prank(users[0]);
         vm.expectRevert(abi.encodeWithSelector(Blobs.PriceExceededMax.selector, cost));
         blobs.mintFromGoo(cost - 1);
@@ -237,7 +265,7 @@ contract BlobsTest is DSTestPlus {
         for (uint256 i = 0; i < numMint; ++i) {
             vm.startPrank(address(blobs));
             uint256 price = blobs.blobPrice();
-            goo.mintForBlobs(users[0], price);
+            goo.mintForGobblers(users[0], price);
             vm.stopPrank();
             vm.prank(users[0]);
             blobs.mintFromGoo(price);
@@ -280,8 +308,9 @@ contract BlobsTest is DSTestPlus {
     /// @notice Test that unrevealed URI is correct.
     function testUnrevealedUri() public {
         uint256 blobCost = blobs.blobPrice();
-        vm.prank(address(blobs));
-        goo.mintForBlobs(users[0], blobCost);
+        vm.prank(address(gobblers));
+        goo.mintForGobblers(users[0], blobCost);
+
         vm.prank(users[0]);
         blobs.mintFromGoo(type(uint256).max);
         // assert blob not revealed after mint
@@ -409,7 +438,7 @@ contract BlobsTest is DSTestPlus {
             vm.warp(block.timestamp + 1 days);
             uint256 cost = blobs.blobPrice();
             vm.prank(address(blobs));
-            goo.mintForBlobs(users[0], cost);
+            goo.mintForGobblers(users[0], cost);
             vm.prank(users[0]);
             blobs.mintFromGoo(type(uint256).max);
         }
@@ -426,7 +455,7 @@ contract BlobsTest is DSTestPlus {
             uint256 cost = blobs.blobPrice();
 
             vm.prank(address(blobs));
-            goo.mintForBlobs(users[0], cost);
+            goo.mintForGobblers(users[0], cost);
             vm.prank(users[0]);
 
             if (i == maxMintableWithGoo) vm.expectRevert("UNDEFINED");
@@ -442,7 +471,7 @@ contract BlobsTest is DSTestPlus {
             vm.warp(block.timestamp + 1 days);
             uint256 cost = blobs.blobPrice();
             vm.prank(address(blobs));
-            goo.mintForBlobs(users[0], cost);
+            goo.mintForGobblers(users[0], cost);
             vm.prank(users[0]);
             blobs.mintFromGoo(type(uint256).max);
         }
@@ -458,7 +487,7 @@ contract BlobsTest is DSTestPlus {
             vm.warp(block.timestamp + 1 days);
             uint256 cost = blobs.blobPrice();
             vm.prank(address(blobs));
-            goo.mintForBlobs(users[0], cost);
+            goo.mintForGobblers(users[0], cost);
             vm.prank(users[0]);
             blobs.mintFromGoo(type(uint256).max);
         }
@@ -476,8 +505,8 @@ contract BlobsTest is DSTestPlus {
     /// @notice Mint a number of blobs to the given address
     function mintBlobToAddress(address addr, uint256 num) internal {
         for (uint256 i = 0; i < num; ++i) {
-            vm.startPrank(address(blobs));
-            goo.mintForBlobs(addr, blobs.blobPrice());
+            vm.startPrank(address(gobblers));
+            goo.mintForGobblers(addr, blobs.blobPrice());
             vm.stopPrank();
 
             uint256 blobsOwnedBefore = blobs.balanceOf(addr);
