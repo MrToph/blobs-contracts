@@ -7,6 +7,7 @@ import {ERC1155TokenReceiver} from "solmate/tokens/ERC1155.sol";
 import {IGobblers} from "./IGobblers.sol";
 import {IGooSalesReceiver} from "./IGooSalesReceiver.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {LibGOO} from "goo-issuance/LibGOO.sol";
 
 import {Goo} from "./Goo.sol";
 
@@ -19,6 +20,7 @@ contract GobblersTreasury is IGooSalesReceiver, Owned, ERC721TokenReceiver, ERC1
     IGobblers public immutable gobblers;
     IERC20 public immutable goo;
     uint40 public unlockTimestamp;
+    uint80 public mintAveragingDays; // measured in days where 1.0 days = 1e18
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -29,6 +31,8 @@ contract GobblersTreasury is IGooSalesReceiver, Owned, ERC721TokenReceiver, ERC1
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
     error TimeLocked();
+    error MintMintNotEnoughGoo(uint256 currentGoo, uint256 requiredGoo);
+    error MintNotProfitable(uint256 gooNoMint, uint256 gooWithMint);
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
@@ -37,6 +41,7 @@ contract GobblersTreasury is IGooSalesReceiver, Owned, ERC721TokenReceiver, ERC1
     // initialize owner to the DAO treasury upon deployment
     constructor(address _treasury, address _gobblers) Owned(_treasury) {
         unlockTimestamp = uint40(block.timestamp) + 180 days;
+        mintAveragingDays = 7e18;
         gobblers = IGobblers(_gobblers);
         goo = IERC20(IGobblers(_gobblers).goo());
     }
@@ -73,9 +78,33 @@ contract GobblersTreasury is IGooSalesReceiver, Owned, ERC721TokenReceiver, ERC1
         gobblerId = gobblers.mintLegendaryGobbler(gobblerIds);
     }
 
-    function mintFromGoo(uint256 maxPrice) external returns (uint256 gobblerId) {
-        // TODO: implement better strategy. right now it's max bidding (buy as soon as possible)
-        gobblerId = gobblers.mintFromGoo({ maxPrice: maxPrice, useVirtualBalance: true });
+    function mintFromGoo() external returns (uint256 gobblerId) {
+        uint256 averagingDays = mintAveragingDays;
+        uint256 currentMintPrice = gobblers.gobblerPrice();
+        uint256 currentGoo = gobblers.gooBalance(address(this));
+        uint256 currentMultiple = gobblers.getUserEmissionMultiple(address(this));
+        uint256 expectedMintMultiple = 7;
+
+        if(currentGoo < currentMintPrice) {
+            revert MintNotEnoughGoo(currentGoo, currentMintPrice);
+        }
+
+        uint256 gooBalanceWithMint = LibGOO.computeGOOBalance(
+            currentMultiple + expectedMintMultiple,
+            currentGoo - currentMintPrice,
+            averagingDays
+        );
+        uint256 gooBalanceNoMint = LibGOO.computeGOOBalance(
+            currentMultiple,
+            currentGoo,
+            averagingDays
+        );
+
+        if(gooBalanceWithMint < gooBalanceNoMint) {
+            revert MintNotProfitable(gooBalanceNoMint, gooBalanceWithMint);
+        }
+
+        gobblerId = gobblers.mintFromGoo({ maxPrice: currentMintPrice, useVirtualBalance: true });
     }
 
 
@@ -89,6 +118,10 @@ contract GobblersTreasury is IGooSalesReceiver, Owned, ERC721TokenReceiver, ERC1
         if (toSend > 0 && receiver != address(0) && receiver != address(this)) {
             goo.transfer(receiver, toSend);
         }
+    }
+
+    function setMintAveragingDays(uint80 daysScaled) external onlyOwner {
+        mintAveragingDays = daysScaled;
     }
 
     /*//////////////////////////////////////////////////////////////
