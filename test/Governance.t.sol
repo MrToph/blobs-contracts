@@ -89,8 +89,9 @@ contract GovernanceTest is Test {
             keccak256(abi.encodePacked(users[0])),
             block.timestamp,
             goo,
-            // team blobs directly go to team, community blobs too and are to be distributed
+            // team blobs directly go to team
             address(foundersMsig),
+            // we don't care about salesRecipient in these tests
             address(foundersMsig),
             randProvider,
             "base",

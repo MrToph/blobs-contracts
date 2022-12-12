@@ -1,22 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
+
 import {DeployBase} from "./DeployBase.s.sol";
 
-contract DeployRinkeby is DeployBase {
-    address public immutable coldWallet = 0x126620598A797e6D9d2C280b5dB91b46F27A8330;
+contract DeployLocal is DeployBase {
+    address public constant teamColdWallet = 0x206FaEC0008DE8Fc5aFCFc16002334c30Bb2F1f0;
 
-    address public immutable root = 0x1D18077167c1177253555e45B4b5448B11E30b4b;
+    address public constant root = 0x06b8ed08Fb5042b8797f620df1B5998eB0e244F0;
 
-    uint256 public immutable mintStart = 1656369768;
+    uint256 public constant mintStart = 1656369768;
 
-    string public constant blobBaseUri = "https://testnet.ag.xyz/api/nfts/blobs/";
-    string public constant blobUnrevealedUri = "https://testnet.ag.xyz/api/nfts/unrevealed";
+    string public constant blobBaseUri = "https://nfts.artgobblers.com/api/gobblers/";
+    string public constant blobUnrevealedUri = "https://nfts.artgobblers.com/api/gobblers/unrevealed";
 
-    constructor()
+    constructor(address gobblersAddress)
         // Team cold wallet:
         DeployBase(
-            coldWallet,
+            gobblersAddress,
+            teamColdWallet,
             // Merkle root:
             keccak256(abi.encodePacked(root)),
             // Mint start:
